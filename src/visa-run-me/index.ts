@@ -2,7 +2,7 @@ import type { Update } from '@grammyjs/types'
 import { Telegraf } from 'telegraf'
 import { Ydb } from 'ydb-sdk-lite'
 
-import type { YC } from '../yc.d'
+import type { YC } from './yc.d'
 
 //
 // env
@@ -43,12 +43,12 @@ const telegraf: Telegraf = new Telegraf(TG_BOT_TOKEN)
 
 telegraf.start(async (matchedContext) => {
   // console.log('start', JSON.stringify(matchedContext))
-  await matchedContext.reply('start')
+  await matchedContext.reply(`Добро пожаловать, @${matchedContext.message.from.username}!`)
 })
 
 telegraf.help(async (matchedContext) => {
   // console.log('help', JSON.stringify(matchedContext))
-  await matchedContext.reply('help')
+  await matchedContext.reply('Вопросы и предложения пишите @denis_zhbankov.')
 })
 
 telegraf.on('text', async (matchedContext) => {
