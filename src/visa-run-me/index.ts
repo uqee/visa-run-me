@@ -70,6 +70,9 @@ telegraf.on('text', async (matchedContext) => {
   await matchedContext.reply(answer)
 })
 
+process.once('SIGINT', () => telegraf.stop('SIGINT'))
+process.once('SIGTERM', () => telegraf.stop('SIGTERM'))
+
 //
 // utils
 //
