@@ -2,12 +2,18 @@ export namespace YC {
   export namespace CF {
     export interface Context {
       awsRequestId: string
+      deadlineMs: number
       functionName: string
       functionVersion: string
-      getPayload: () => unknown
+      invokedFunctionArn: string
       logGroupName: string
-      memoryLimitInMB: number
+      memoryLimitInMB: string
       requestId: string
+      token: {
+        access_token: string
+        expires_in: number
+        token_type: 'Bearer'
+      }
     }
 
     export interface Request {

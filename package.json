@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "telegraf": "4.7.0",
-    "ydb-sdk": "2.9.2"
+    "ydb-sdk-lite": "2.1.0"
   },
   "devDependencies": {
     "@grammyjs/types": "2.7.0",
@@ -24,8 +24,11 @@
   "name": "visa-run-me",
   "scripts": {
     "build": "tsc",
-    "create": "./scripts/create.sh",
-    "update": "./scripts/update.sh"
+    "lambda-create": "./scripts/lambda-create.sh",
+    "lambda-update": "./scripts/lambda-update.sh",
+    "webhook-delete": "./scripts/webhook-delete.sh",
+    "webhook-get": "./scripts/webhook-get.sh",
+    "webhook-post": "./scripts/webhook-post.sh"
   },
   "version": "0.1.0"
 }

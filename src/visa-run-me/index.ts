@@ -1,90 +1,103 @@
-// import type { Update } from '@grammyjs/types'
-// import { Telegraf } from 'telegraf'
-import { Driver, getLogger, Logger, MetadataAuthService, Session, Ydb } from 'ydb-sdk'
+import type { Update } from '@grammyjs/types'
+import { Telegraf } from 'telegraf'
+import { Ydb } from 'ydb-sdk-lite'
 
 import type { YC } from '../yc.d'
 
+//
 // env
+//
 
-const { TG_BOT_TOKEN, YC_DB_ENTRYPOINT, YC_DB_LOGLEVEL, YC_DB_NAME } = process.env
-if (!TG_BOT_TOKEN || !YC_DB_ENTRYPOINT || !YC_DB_LOGLEVEL || !YC_DB_NAME) {
+const { TG_BOT_TOKEN, YC_DB_NAME } = process.env
+if (!TG_BOT_TOKEN || !YC_DB_NAME) {
   throw new Error('Invalid ENV')
 }
 
+//
 // db
+//
 
-const dbDriver: Driver = new Driver(
-  YC_DB_ENTRYPOINT,
-  YC_DB_NAME,
-  new MetadataAuthService(YC_DB_NAME),
-)
+let ydb: Ydb | undefined
+let ydbAccessToken: string | undefined
 
-const dbLogger: Logger = getLogger({
-  level: YC_DB_LOGLEVEL,
-})
-
-async function dbDriverReady(): Promise<void> {
-  const ready: boolean = await dbDriver.ready(3e3)
-  if (!ready) {
-    dbLogger.fatal('Driver has not become ready in 3 seconds!')
-    process.exit(1)
+function updateYdb(context: YC.CF.Context): Ydb {
+  const accessToken: string = context.token.access_token
+  if (accessToken !== ydbAccessToken) {
+    ydbAccessToken = accessToken
+    ydb = undefined
   }
-}
-
-async function describeTable(
-  session: Session,
-  tableName: string,
-  logger: Logger,
-): Promise<unknown> {
-  await dbDriverReady()
-
-  logger.info(`Describing table: ${tableName}`)
-  const describeTableResult: Ydb.Table.DescribeTableResult = await session.describeTable(tableName)
-
-  const shit = {
-    columns: [] as unknown[],
-    info: `Describe table ${tableName}`,
-  }
-  for (const column of describeTableResult.columns) {
-    shit.columns.push({
-      name: column.name,
-      type: column.type!.optionalType!.item!.typeId!,
+  if (ydb === undefined) {
+    ydb = new Ydb({
+      dbName: YC_DB_NAME!,
+      iamToken: ydbAccessToken,
     })
   }
-
-  return shit
+  return ydb
 }
 
+//
 // tg
+//
 
-// const telegraf: Telegraf = new Telegraf(TG_BOT_TOKEN)
+const telegraf: Telegraf = new Telegraf(TG_BOT_TOKEN)
 
-// telegraf.help(async (ctx) => {
-//   await ctx.reply(`Hi, ${ctx.message.from.username || 'Anonymous'}!\nhelp`)
-// })
+telegraf.start(async (matchedContext) => {
+  // console.log('start', JSON.stringify(matchedContext))
+  await matchedContext.reply('start')
+})
 
-// telegraf.on('text', async (ctx) => {
-//   await ctx.reply(`Hi, ${ctx.message.from.username || 'Anonymous'}!\n${ctx.message.text}`)
-// })
+telegraf.help(async (matchedContext) => {
+  // console.log('help', JSON.stringify(matchedContext))
+  await matchedContext.reply('help')
+})
 
-// telegraf.start(async (ctx) => {
-//   await ctx.reply(`Hi, ${ctx.message.from.username || 'Anonymous'}!\nstart`)
-// })
+telegraf.on('text', async (matchedContext) => {
+  // console.log('text', JSON.stringify(matchedContext))
 
+  const query: string | undefined = matchedContext.message.text
+  let answer: string = query
+
+  if (ydb !== undefined && query !== undefined) {
+    try {
+      const result = await ydb.executeDataQuery(query)
+      answer = JSON.stringify(result)
+    } catch (error) {
+      answer = JSON.stringify(error)
+    }
+  }
+
+  // console.log('answer', answer)
+  await matchedContext.reply(answer)
+})
+
+//
+// utils
+//
+
+function fromBase64(base64: string): string {
+  return Buffer.from(base64, 'base64').toString('utf8')
+}
+
+// function toBase64(utf8: string): string {
+//   return Buffer.from(utf8, 'utf-8').toString('base64')
+// }
+
+//
 // handler
+//
 
 const response: YC.CF.Response = { body: '', statusCode: 200 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function handler(_request: YC.CF.Request): Promise<YC.CF.Response> {
-  // const message: Update = JSON.parse(request.body || '') as Update
-  // await telegraf.handleUpdate(message)
+async function handler(request: YC.CF.Request, context: YC.CF.Context): Promise<YC.CF.Response> {
+  // console.log('request', JSON.stringify(request))
+  // console.log('context', JSON.stringify(context))
 
-  let shit: unknown
-  await dbDriver.tableClient.withSession(async (session) => {
-    shit = await describeTable(session, 'countries', dbLogger)
-  })
-  dbLogger.info(`Shit is ${JSON.stringify(shit)}`)
+  updateYdb(context)
+  const { body, isBase64Encoded } = request
+  const message: unknown = JSON.parse(body ? (isBase64Encoded ? fromBase64(body) : body) : '')
+  const update: Update = message as Update
+  await telegraf.handleUpdate(update)
 
+  // console.log('response', JSON.stringify(response))
   return response
 }
 

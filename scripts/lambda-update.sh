@@ -1,17 +1,17 @@
 #!/bin/sh
 
-echo "1. Env"
+# echo "Env"
 export $(grep -v '^#' ./.env)
 
-echo "2. Build"
+# echo "Build"
 rm -rf ./build
 npx tsc --build tsconfig.json
 cp package.json ./build/package.json
 
-echo "3. Deploy"
+# echo "Deploy"
 yc serverless function version create \
   --entrypoint index.handler \
-  --environment TG_BOT_TOKEN=$TG_BOT_TOKEN,YC_DB_ENTRYPOINT=$YC_DB_ENTRYPOINT,YC_DB_LOGLEVEL=$YC_DB_LOGLEVEL,YC_DB_NAME=$YC_DB_NAME \
+  --environment TG_BOT_TOKEN=$TG_BOT_TOKEN,YC_DB_NAME=$YC_DB_NAME \
   --execution-timeout 3s \
   --folder-id $YC_FOLDER_ID \
   --function-name=$YC_CF_FUNCTION_NAME \
