@@ -3,10 +3,10 @@
   SELECT * FROM countries;
 
   INSERT INTO countries (name, updated)
-  VALUES (4, 'Косово', Datetime('2022-04-24T00:00:00Z'));
+  VALUES (5, 'Kosovo', Datetime('2022-04-24T00:00:00Z'));
 
   DELETE FROM countries
-  WHERE id == 4;
+  WHERE id == 5;
 
   COMMIT;
 
