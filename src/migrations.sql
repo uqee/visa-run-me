@@ -97,6 +97,7 @@
     tgfullname utf8,
     tgusername string,
     updated uint64,
+    index persons_tgid_idx global on (tgid),
     primary key (id)
   );
 
