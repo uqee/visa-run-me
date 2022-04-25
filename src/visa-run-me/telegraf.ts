@@ -1,6 +1,7 @@
 import { Telegraf } from 'telegraf'
+import { uid } from 'uid'
 
-import { jsonStringifyBigints } from './json'
+import { timestampFromDate } from './timestamp'
 import { ydbExecute } from './ydb'
 
 export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
@@ -14,20 +15,19 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
 
     //
 
-    const response1 = await ydbExecute(`select * from persons where tgid == ${tgid}`)
-    console.log(response1)
-    const id: number | undefined = response1[0] ? Number(response1[0][0].id) : undefined
-    if (debug) console.log('response1', jsonStringifyBigints(response1))
+    const response1 = await ydbExecute(`select id from persons where tgid == '${tgid}'`)
+    const id: string | undefined = response1[0]?.[0]?.id as string | undefined
+    if (debug) console.log('response1', JSON.stringify(response1))
 
     //
 
-    const now: number = Date.now()
+    const timestamp: number = timestampFromDate()
     const response2 = await ydbExecute(
       id
-        ? `replace into persons (id, tgid, tgfullname, tgusername, updated) values (${id}, ${tgid}, '${tgfullname}', '${tgusername}', ${now})`
-        : `insert into persons (_feedbacksCount, _feedbacksSum, _tripsCount, id, tgid, tgfullname, tgusername, updated) values (0, 0, 0, ${now}, ${tgid}, '${tgfullname}', '${tgusername}', ${now})`,
+        ? `replace into persons (id, tgid, tgfullname, tgusername, updated) values ('${id}', '${tgid}', '${tgfullname}', '${tgusername}', ${timestamp})`
+        : `insert into persons (id, _feedbacksCount, _feedbacksSum, _tripsCount, tgid, tgfullname, tgusername, created, updated) values ('${uid()}', 0, 0, 0, '${tgid}', '${tgfullname}', '${tgusername}', ${timestamp}, ${timestamp})`,
     )
-    if (debug) console.log('response2', jsonStringifyBigints(response2))
+    if (debug) console.log('response2', JSON.stringify(response2))
 
     //
 
@@ -50,7 +50,7 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
     if (debug) console.log('text', JSON.stringify(matchedContext))
 
     const request: string = matchedContext.message.text
-    const response: string = jsonStringifyBigints(await ydbExecute(request))
+    const response: string = JSON.stringify(await ydbExecute(request))
 
     if (debug) console.log('response', response)
     await matchedContext.reply(response)
