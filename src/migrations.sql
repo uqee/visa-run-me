@@ -1,157 +1,163 @@
 --
 
-  SELECT * FROM countries;
+  select * from countries;
 
-  INSERT INTO countries (name, updated)
-  VALUES (5, 'Kosovo', Datetime('2022-04-24T00:00:00Z'));
+  insert into countries (id, name, updated)
+  values (1650900000005, 'Kosovo', 1650900000005);
 
-  DELETE FROM countries
-  WHERE id == 5;
+  delete from countries
+  where id == 5;
 
-  COMMIT;
+  commit;
 
 -- 2022-04-25
 
-  REPLACE INTO Countries
+  replace into countries
     (id, name, updated)
-  VALUES
-    (0, 'Albania',              Datetime('2022-04-24T00:00:00Z')),
-    (1, 'Bosnia i Herzegovina', Datetime('2022-04-24T00:00:00Z')),
-    (2, 'Croatia',              Datetime('2022-04-24T00:00:00Z')),
-    (3, 'Montenegro',           Datetime('2022-04-24T00:00:00Z')),
-    (4, 'Serbia',               Datetime('2022-04-24T00:00:00Z'));
+  values
+    (1650900000000, 'Albania',              1650900000000),
+    (1650900000001, 'Bosnia i Herzegovina', 1650900000001),
+    (1650900000002, 'Croatia',              1650900000002),
+    (1650900000003, 'Montenegro',           1650900000003),
+    (1650900000004, 'Serbia',               1650900000004);
 
-  REPLACE INTO Places
+  replace into places
     (countryId, id, name, updated)
-  VALUES
-    (0, 0,  'Bashkimi',     Datetime('2022-04-24T00:00:00Z')),
-    (0, 1,  'Koplik',       Datetime('2022-04-24T00:00:00Z')),
-    (0, 2,  'Shkodër',      Datetime('2022-04-24T00:00:00Z')),
+  values
+    (1650900000000, 1650900000000, 'Bashkimi',     1650900000000),
+    (1650900000000, 1650900000001, 'Koplik',       1650900000001),
+    (1650900000000, 1650900000002, 'Shkodër',      1650900000002),
 
-    (1, 3,  'Bileća',       Datetime('2022-04-24T00:00:00Z')),
-    (1, 4,  'Gacko',        Datetime('2022-04-24T00:00:00Z')),
-    (1, 5,  'Goražde',      Datetime('2022-04-24T00:00:00Z')),
-    (1, 6,  'Trebinje',     Datetime('2022-04-24T00:00:00Z')),
+    (1650900000001, 1650900000003, 'Bileća',       1650900000003),
+    (1650900000001, 1650900000004, 'Gacko',        1650900000004),
+    (1650900000001, 1650900000005, 'Goražde',      1650900000005),
+    (1650900000001, 1650900000006, 'Trebinje',     1650900000006),
 
-    (2, 7,  'Dubrovnik',    Datetime('2022-04-24T00:00:00Z')),
+    (1650900000002, 1650900000007, 'Dubrovnik',    1650900000007),
 
-    (3, 8,  'Bar',          Datetime('2022-04-24T00:00:00Z')),
-    (3, 9,  'Berane',       Datetime('2022-04-24T00:00:00Z')),
-    (3, 10, 'Bijelo Polje', Datetime('2022-04-24T00:00:00Z')),
-    (3, 11, 'Budva',        Datetime('2022-04-24T00:00:00Z')),
-    (3, 12, 'Cetinje',      Datetime('2022-04-24T00:00:00Z')),
-    (3, 13, 'Herceg Novi',  Datetime('2022-04-24T00:00:00Z')),
-    (3, 14, 'Kotor',        Datetime('2022-04-24T00:00:00Z')),
-    (3, 15, 'Nikšić',       Datetime('2022-04-24T00:00:00Z')),
-    (3, 16, 'Petrovac',     Datetime('2022-04-24T00:00:00Z')),
-    (3, 17, 'Pljevlja',     Datetime('2022-04-24T00:00:00Z')),
-    (3, 18, 'Podgorica',    Datetime('2022-04-24T00:00:00Z')),
-    (3, 19, 'Rožaje',       Datetime('2022-04-24T00:00:00Z')),
-    (3, 20, 'Sitnica',      Datetime('2022-04-24T00:00:00Z')),
-    (3, 21, 'Tivat',        Datetime('2022-04-24T00:00:00Z')),
-    (3, 22, 'Ulcinj',       Datetime('2022-04-24T00:00:00Z')),
+    (1650900000003, 1650900000008, 'Bar',          1650900000008),
+    (1650900000003, 1650900000009, 'Berane',       1650900000009),
+    (1650900000003, 1650900000010, 'Bijelo Polje', 1650900000010),
+    (1650900000003, 1650900000011, 'Budva',        1650900000011),
+    (1650900000003, 1650900000012, 'Cetinje',      1650900000012),
+    (1650900000003, 1650900000013, 'Herceg Novi',  1650900000013),
+    (1650900000003, 1650900000014, 'Kotor',        1650900000014),
+    (1650900000003, 1650900000015, 'Nikšić',       1650900000015),
+    (1650900000003, 1650900000016, 'Petrovac',     1650900000016),
+    (1650900000003, 1650900000017, 'Pljevlja',     1650900000017),
+    (1650900000003, 1650900000018, 'Podgorica',    1650900000018),
+    (1650900000003, 1650900000019, 'Rožaje',       1650900000019),
+    (1650900000003, 1650900000020, 'Sitnica',      1650900000020),
+    (1650900000003, 1650900000021, 'Tivat',        1650900000021),
+    (1650900000003, 1650900000022, 'Ulcinj',       1650900000022),
 
-    (4, 23, 'Gostun',       Datetime('2022-04-24T00:00:00Z')),
-    (4, 24, 'Jabuka',       Datetime('2022-04-24T00:00:00Z')),
-    (4, 25, 'Krnjača',      Datetime('2022-04-24T00:00:00Z')),
-    (4, 26, 'Ribariće',     Datetime('2022-04-24T00:00:00Z'));
+    (1650900000004, 1650900000023, 'Gostun',       1650900000023),
+    (1650900000004, 1650900000024, 'Jabuka',       1650900000024),
+    (1650900000004, 1650900000025, 'Krnjača',      1650900000025),
+    (1650900000004, 1650900000026, 'Ribariće',     1650900000026);
 
-  COMMIT;
+  commit;
 
 -- 2022-04-24
 
-  CREATE TABLE Cars (
-    capacity Uint8,
-    id Uint32,
-    model Utf8,
-    personId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  -- every 'id' is timestamp (equals 'created')
+  -- every 'updated' is timestamp
+
+  create table cars (
+    capacity uint8,
+    id uint64,
+    model utf8,
+    personId uint64,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Countries (
-    id Uint32,
-    name Utf8,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table countries (
+    id uint64,
+    name utf8,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Feedbacks (
-    id Uint32,
-    personId Uint32,
-    stars Uint8,
-    tripId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table feedbacks (
+    id uint64,
+    personId uint64,
+    stars uint8,
+    tripId uint64,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Persons (
-    _feedbackCount Uint32,
-    _feedbackSum Uint32,
-    _tripsCount Uint32,
-    id Uint32,
-    tgId Uint64,
-    tgUsername String,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table persons (
+    _feedbacksCount uint32,
+    _feedbacksSum uint32,
+    _tripsCount uint32,
+    id uint64,
+    tgid uint64,
+    tgfullname utf8,
+    tgusername string,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Places (
-    countryId Uint32,
-    id Uint32,
-    name Utf8,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table places (
+    countryId uint64,
+    id uint64,
+    name utf8,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Trips (
-    capacityMax Uint8,
-    capacityMin Uint8,
-    countryId Uint32,
-    id Uint32,
-    name Utf8,
-    status Uint8, -- Offered | Settled | Canceled | Finished
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table trips (
+    capacityMax uint8,
+    capacityMin uint8,
+    countryId uint64,
+    id uint64,
+    name utf8,
+    status uint8, -- Todo | Arranged | Canceled | Done
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE TripCars (
-    carId Uint32,
-    id Uint32,
-    tripId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table tripCars (
+    carId uint64,
+    id uint64,
+    tripId uint64,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE TripPlaces (
-    agenda Utf8,
-    datetimeIn Datetime,
-    datetimeOut Datetime, -- ?
-    id Uint32,
-    placeId Uint32,
-    price Uint8, -- to return?
-    tripId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table tripPlaces (
+    agenda utf8,
+    arrival uint64,
+    duration uint64,
+    id uint64,
+    placeId uint64,
+    price uint32,
+    tripId uint32,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE TripPersons (
-    id Uint32,
-    personId Uint32,
-    role Uint8, -- Driver | Passenger
-    tripId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table tripPersons (
+    id uint64,
+    personId uint64,
+    role uint8, -- Driver | Passenger
+    tripId uint64,
+    updated uint64,
+    primary key (id)
   );
 
-  CREATE TABLE Wishes (
-    date Date,
-    id Uint32,
-    personId Uint32,
-    placeId Uint32,
-    tripId Uint32,
-    updated Datetime,
-    PRIMARY KEY (id)
+  create table needs (
+    departure uint64,
+    id uint64,
+    personId uint64,
+    price uint32,
+    placeId uint64,
+    status uint8, -- Todo | Arranged | Canceled | Done
+    tripId uint64,
+    updated uint64,
+    primary key (id)
   );
 
-  COMMIT;
+  commit;

@@ -43,7 +43,9 @@ const telegraf: Telegraf = new Telegraf(TG_BOT_TOKEN)
 
 telegraf.start(async (matchedContext) => {
   // console.log('start', JSON.stringify(matchedContext))
-  await matchedContext.reply(`Добро пожаловать, @${matchedContext.message.from.username}!`)
+  await matchedContext.reply(
+    `Добро пожаловать, @${matchedContext.message.from.username || 'Anonymous'}!`,
+  )
 })
 
 telegraf.help(async (matchedContext) => {
@@ -55,19 +57,19 @@ telegraf.on('text', async (matchedContext) => {
   // console.log('text', JSON.stringify(matchedContext))
 
   const query: string | undefined = matchedContext.message.text
-  let answer: string = query
+  let answer: string | undefined
 
   if (ydb !== undefined && query !== undefined) {
     try {
       const result = await ydb.executeDataQuery(query)
       answer = JSON.stringify(result)
     } catch (error) {
-      answer = JSON.stringify(error)
+      console.log(query, '\n', error)
     }
   }
 
   // console.log('answer', answer)
-  await matchedContext.reply(answer)
+  await matchedContext.reply(answer || 'Unknown answer')
 })
 
 process.once('SIGINT', () => telegraf.stop('SIGINT'))
