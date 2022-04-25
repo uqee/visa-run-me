@@ -7,9 +7,9 @@ import { ydbExecute } from './ydb'
 export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
   const telegraf: Telegraf = new Telegraf(tgBotToken)
 
-  telegraf.start(async (matchedContext) => {
-    if (debug) console.log('start', JSON.stringify(matchedContext))
-    const { id: tgid, first_name, last_name, username } = matchedContext.message.from
+  telegraf.start(async (context) => {
+    if (debug) console.log('start', JSON.stringify(context))
+    const { id: tgid, first_name, last_name, username } = context.message.from
     const tgfullname: string = first_name + (last_name ? ' ' + last_name : '')
     const tgusername: string = username ?? 'null'
 
@@ -31,29 +31,29 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
 
     //
 
-    await matchedContext.reply(`Добро пожаловать, ${tgfullname}!`)
+    await context.reply(`Добро пожаловать, ${tgfullname}!`)
   })
 
-  telegraf.command('feedback', async (matchedContext) => {
+  telegraf.command('feedback', async (context) => {
     // оставить отзыв или предложение
-    if (debug) console.log('feedback', JSON.stringify(matchedContext))
-    await matchedContext.reply('Оставьте отзыв или предложение @denis_zhbankov.')
+    if (debug) console.log('feedback', JSON.stringify(context))
+    await context.reply('Оставьте отзыв или предложение @denis_zhbankov.')
   })
 
-  telegraf.help(async (matchedContext) => {
+  telegraf.help(async (context) => {
     // получить инструкцию
-    if (debug) console.log('help', JSON.stringify(matchedContext))
-    await matchedContext.reply('Инструкция в разработке... ⏳')
+    if (debug) console.log('help', JSON.stringify(context))
+    await context.reply('Инструкция в разработке... ⏳')
   })
 
-  telegraf.on('text', async (matchedContext) => {
-    if (debug) console.log('text', JSON.stringify(matchedContext))
+  telegraf.on('text', async (context) => {
+    if (debug) console.log('text', JSON.stringify(context))
 
-    const request: string = matchedContext.message.text
+    const request: string = context.message.text
     const response: string = JSON.stringify(await ydbExecute(request))
 
     if (debug) console.log('response', response)
-    await matchedContext.reply(response)
+    await context.reply(response)
   })
 
   process.once('SIGINT', () => telegraf.stop('SIGINT'))
