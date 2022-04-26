@@ -2,7 +2,7 @@ import type { Update } from '@grammyjs/types'
 import { Telegraf } from 'telegraf'
 
 import { encodeBase64ToUtf8 } from './encode'
-import { telegrafSetup } from './telegraf'
+import { TelegrafContext, telegrafSetup } from './telegraf'
 import type { YC } from './yc.d'
 import { ydbSetup } from './ydb'
 
@@ -11,7 +11,7 @@ if (!TG_BOT_TOKEN || !YC_DB_NAME) throw new Error('Invalid ENV')
 
 const debug: boolean = DEBUG === 'true'
 const response: YC.CF.Response = { body: '', statusCode: 200 }
-const telegraf: Telegraf = telegrafSetup(TG_BOT_TOKEN, debug)
+const telegraf: Telegraf<TelegrafContext> = telegrafSetup(TG_BOT_TOKEN, debug)
 
 async function handler(request: YC.CF.Request, context: YC.CF.Context): Promise<YC.CF.Response> {
   if (debug) {

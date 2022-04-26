@@ -1,11 +1,44 @@
-import { Telegraf } from 'telegraf'
+import { Context, Markup, Scenes, session, Telegraf } from 'telegraf'
 import { uid } from 'uid'
 
 import { timestampFromDate } from './timestamp'
 import { ydbExecute } from './ydb'
 
-export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
-  const telegraf: Telegraf = new Telegraf(tgBotToken)
+export interface TelegrafContext extends Context {
+  scene: Scenes.SceneContextScene<Context>
+}
+
+export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf<TelegrafContext> {
+  const telegraf = new Telegraf<TelegrafContext>(tgBotToken)
+
+  //
+  //
+  //
+
+  const greeterScene = new Scenes.BaseScene<Scenes.SceneContext>('greeter')
+  greeterScene.enter(async (ctx) => ctx.reply('greeter.enter'))
+  greeterScene.leave(async (ctx) => ctx.reply('greeter.leave'))
+  greeterScene.hears('bye', async (ctx) => ctx.scene.leave())
+  greeterScene.on('message', async (ctx) => ctx.reply('greeter'))
+
+  const echoScene = new Scenes.BaseScene<Scenes.SceneContext>('echo')
+  echoScene.enter(async (ctx) => ctx.reply('echo.enter'))
+  echoScene.leave(async (ctx) => ctx.reply('echo.leave'))
+  echoScene.hears('bye', async (ctx) => ctx.scene.leave())
+  echoScene.on('text', async (ctx) => ctx.reply(ctx.message.text))
+  echoScene.on('message', async (ctx) => ctx.reply('Only text messages please'))
+
+  const stage = new Scenes.Stage<Scenes.SceneContext>([greeterScene, echoScene])
+  telegraf.use(session())
+  telegraf.use(stage.middleware() as never)
+
+  telegraf.command('greeter', async (ctx) => ctx.scene.enter('greeter'))
+  telegraf.command('echo', async (ctx) => ctx.scene.enter('echo'))
+  telegraf.on('message', async (ctx) => ctx.reply('Try /echo or /greeter'))
+
+  //
+  //
+  //
 
   telegraf.start(async (context) => {
     if (debug) console.log('start', JSON.stringify(context))
@@ -46,14 +79,14 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf {
     await context.reply('Инструкция в разработке... ⏳')
   })
 
-  telegraf.on('text', async (context) => {
+  telegraf.hears('text', async (context) => {
     if (debug) console.log('text', JSON.stringify(context))
 
-    const request: string = context.message.text
-    const response: string = JSON.stringify(await ydbExecute(request))
-
-    if (debug) console.log('response', response)
-    await context.reply(response)
+    const response: string = context.message.text
+    await context.reply(
+      response,
+      Markup.keyboard(['/start', '/help', '/feedback']).oneTime().resize(),
+    )
   })
 
   process.once('SIGINT', () => telegraf.stop('SIGINT'))
