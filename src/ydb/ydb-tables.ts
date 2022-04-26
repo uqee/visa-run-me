@@ -1,7 +1,7 @@
 export interface _Session {
+  created: number
   key: string
   value: string
-  created: number
 }
 
 //
@@ -17,10 +17,9 @@ interface Standard {
 //
 
 export interface Car extends Standard {
-  personId: string
-
   capacity: number
   model: string
+  personId: string
 }
 
 //
@@ -33,9 +32,8 @@ export interface Country extends Standard {
 
 export interface Feedback extends Standard {
   personId: string
-  tripId: string
-
   stars: number
+  tripId: string
 }
 
 //
@@ -48,13 +46,12 @@ export enum NeedStatus {
 }
 
 export interface Need extends Standard {
+  departure: number
   personId: string
   placeId: string
-  tripId: string
-
-  departure: number
   price: number
   status: NeedStatus
+  tripId: string
 }
 
 //
@@ -72,7 +69,6 @@ export interface Person extends Standard {
 
 export interface Place extends Standard {
   countryId: string
-
   name: string
 }
 
@@ -108,19 +104,17 @@ export enum TripPersonRole {
 
 export interface TripPerson extends Standard {
   personId: string
-  tripId: string
-
   role: TripPersonRole
+  tripId: string
 }
 
 //
 
 export interface TripPlace extends Standard {
-  placeId: string
-  tripId: string
-
   agenda: string
   arrival: number
   duration: number
+  placeId: string
   price: number
+  tripId: string
 }
