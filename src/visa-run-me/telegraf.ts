@@ -1,6 +1,7 @@
-import { Context, Markup, Scenes, session, Telegraf } from 'telegraf'
+import { Context, Markup, Scenes, Telegraf } from 'telegraf'
 import { uid } from 'uid'
 
+import { session } from './session'
 import { timestampFromDate } from './timestamp'
 import { ydbExecute } from './ydb'
 
@@ -34,7 +35,6 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf<Tele
   const stage = new Scenes.Stage<Scenes.SceneContext>([greeterScene, echoScene])
   telegraf.use(session())
   telegraf.use(stage.middleware())
-
   telegraf.command('greeter', async (ctx) => ctx.scene.enter('greeter'))
   telegraf.command('echo', async (ctx) => ctx.scene.enter('echo'))
   telegraf.on('message', async (ctx) => ctx.reply('Try /echo or /greeter'))

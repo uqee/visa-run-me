@@ -6,6 +6,7 @@
   drop table needs;
   drop table persons;
   drop table places;
+  drop table sessions;
   drop table trips;
   drop table tripCars;
   drop table tripPersons;
@@ -93,6 +94,13 @@
     created uint32,
     updated uint32,
     primary key (id)
+  );
+
+  create table sessions (
+    key string,
+    value string,
+    created uint32,
+    primary key (key)
   );
 
   create table trips (
