@@ -11,49 +11,98 @@ export interface TgContext extends Context {
 }
 
 class Tg {
+  private static readonly Dict = {
+    ON_MESSAGE: 'Пожалуйста, воспользуйтесь кнопками меню ↓',
+    ROOT: 'Домой',
+    ROOT_DRIVER: 'Водителям',
+    ROOT_PASSENGER: 'Пассажирам',
+  }
+
+  private static readonly Keyboards = {
+    ROOT: Markup.keyboard([[Tg.Dict.ROOT_DRIVER, Tg.Dict.ROOT_PASSENGER]]),
+    ROOT_DRIVER: Markup.keyboard([[Tg.Dict.ROOT]]),
+    ROOT_PASSENGER: Markup.keyboard([[Tg.Dict.ROOT]]),
+  }
+
+  private static readonly Routes = {
+    ROOT: 'ROOT',
+    ROOT_DRIVER: 'ROOT_DRIVER',
+    ROOT_PASSENGER: 'ROOT_PASSENGER',
+  }
+
+  private static to(route: string): string {
+    return `→ ${route}`
+  }
+
   private debug: boolean | undefined
   private telegraf: Telegraf<TgContext> | undefined
 
   // eslint-disable-next-line max-lines-per-function
   public setup(tgBotToken: string, debug: boolean): Telegraf<TgContext> {
-    this.debug = debug
-    this.telegraf = new Telegraf<TgContext>(tgBotToken)
+    const telegraf: Telegraf<TgContext> = new Telegraf<TgContext>(tgBotToken)
 
-    this.telegraf.use(async (context, next) => {
-      if (this.debug) console.log('TG : context', JSON.stringify(context))
-      return next()
+    //
+    // driver
+    //
+
+    const baseSceneDriver = new Scenes.BaseScene<Scenes.SceneContext>(Tg.Routes.ROOT_DRIVER)
+
+    baseSceneDriver.enter(async (context) => {
+      await context.reply(Tg.to(Tg.Dict.ROOT_DRIVER), Tg.Keyboards.ROOT_DRIVER)
+    })
+
+    baseSceneDriver.leave(async (context) => {
+      await context.reply(Tg.to(Tg.Dict.ROOT), Tg.Keyboards.ROOT)
+    })
+
+    baseSceneDriver.hears(Tg.Dict.ROOT, async (context) => {
+      await context.scene.leave()
+    })
+
+    baseSceneDriver.on('message', async (context) => {
+      await context.reply(Tg.Dict.ON_MESSAGE)
     })
 
     //
-    //
-    //
-
-    const greeterScene = new Scenes.BaseScene<Scenes.SceneContext>('greeter')
-    greeterScene.enter(async (ctx) => ctx.reply('greeter.enter'))
-    greeterScene.leave(async (ctx) => ctx.reply('greeter.leave'))
-    greeterScene.hears('bye', async (ctx) => ctx.scene.leave())
-    greeterScene.on('message', async (ctx) => ctx.reply('greeter'))
-
-    const echoScene = new Scenes.BaseScene<Scenes.SceneContext>('echo')
-    echoScene.enter(async (ctx) => ctx.reply('echo.enter'))
-    echoScene.leave(async (ctx) => ctx.reply('echo.leave'))
-    echoScene.hears('bye', async (ctx) => ctx.scene.leave())
-    echoScene.on('text', async (ctx) => ctx.reply(ctx.message.text))
-    echoScene.on('message', async (ctx) => ctx.reply('Only text messages please'))
-
-    const stage = new Scenes.Stage<Scenes.SceneContext>([greeterScene, echoScene])
-    this.telegraf.use(session())
-    this.telegraf.use(stage.middleware())
-    this.telegraf.command('greeter', async (ctx) => ctx.scene.enter('greeter'))
-    this.telegraf.command('echo', async (ctx) => ctx.scene.enter('echo'))
-    this.telegraf.on('message', async (ctx) => ctx.reply('Try /echo or /greeter'))
-
-    //
-    //
+    // passenger
     //
 
-    this.telegraf.start(async (context) => {
-      if (this.debug) console.log('TG : start')
+    const baseScenePassenger = new Scenes.BaseScene<Scenes.SceneContext>(Tg.Routes.ROOT_PASSENGER)
+
+    baseScenePassenger.enter(async (context) => {
+      await context.reply(Tg.to(Tg.Dict.ROOT_PASSENGER), Tg.Keyboards.ROOT_PASSENGER)
+    })
+
+    baseScenePassenger.leave(async (context) => {
+      await context.reply(Tg.to(Tg.Dict.ROOT), Tg.Keyboards.ROOT)
+    })
+
+    baseScenePassenger.hears(Tg.Dict.ROOT, async (context) => {
+      await context.scene.leave()
+    })
+
+    baseScenePassenger.on('message', async (context) => {
+      await context.reply(Tg.Dict.ON_MESSAGE)
+    })
+
+    //
+    // root
+    //
+
+    const stage = new Scenes.Stage<Scenes.SceneContext>([
+      baseSceneDriver, //
+      baseScenePassenger,
+    ])
+
+    telegraf.use(async (context, next) => {
+      if (debug) console.log('TG : context', JSON.stringify(context))
+      return next()
+    })
+
+    telegraf.use(session())
+    telegraf.use(stage.middleware())
+
+    telegraf.start(async (context) => {
       const { id, first_name: firstname, last_name: lastname, username } = context.message.from
       const userid: string = `${id}`
 
@@ -61,35 +110,40 @@ class Tg {
       if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, username })
       else await ydb.personsInsert({ firstname, lastname, userid, username })
 
-      await context.reply(`Добро пожаловать, ${firstname}!`)
+      await context.reply(`Dobro došli, ${firstname} ♥`, Tg.Keyboards.ROOT)
     })
 
-    this.telegraf.command('feedback', async (context) => {
-      // оставить отзыв или предложение
-      if (this.debug) console.log('TG : feedback')
+    telegraf.help(async (context) => {
+      await context.reply(Tg.Dict.ON_MESSAGE)
+    })
+
+    telegraf.command('feedback', async (context) => {
       await context.reply('Оставьте отзыв или предложение @denis_zhbankov.')
     })
 
-    this.telegraf.help(async (context) => {
-      // получить инструкцию
-      if (this.debug) console.log('TG : help')
-      await context.reply('Инструкция в разработке... ⏳')
+    telegraf.hears(Tg.Dict.ROOT_DRIVER, async (context) => {
+      await context.scene.enter(Tg.Routes.ROOT_DRIVER)
     })
 
-    this.telegraf.hears('text', async (context) => {
-      if (this.debug) console.log('TG : text')
-
-      const response: string = context.message.text
-      await context.reply(
-        response,
-        Markup.keyboard(['/start', '/help', '/feedback']).oneTime().resize(),
-      )
+    telegraf.hears(Tg.Dict.ROOT_PASSENGER, async (context) => {
+      await context.scene.enter(Tg.Routes.ROOT_PASSENGER)
     })
+
+    telegraf.on('message', async (context) => {
+      await context.reply(Tg.Dict.ON_MESSAGE)
+    })
+
+    //
+    //
+    //
 
     process.once('SIGINT', () => this.telegraf?.stop('SIGINT'))
     process.once('SIGTERM', () => this.telegraf?.stop('SIGTERM'))
 
-    return this.telegraf
+    this.debug = debug
+    this.telegraf = telegraf
+
+    return telegraf
   }
 }
 

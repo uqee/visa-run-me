@@ -65,9 +65,9 @@ class Ydb {
         _feedbacksCount,
         _feedbacksSum,
         firstname,
-        lasync astname,
+        lastname,
         userid,
-     Promise<void>sername,
+        username,
         created,
         deleted,
         id,
@@ -108,9 +108,9 @@ class Ydb {
       set
         firstname = '${firstname}',
         lastname = ${Ydb.sqlNullableToString(lastname)},
-        username = ${Ydb.sqlNullableToString(username)},
+        username = ${Ydb.sqlNullableToString(username)}
       where
-        id == ${id}
+        id == '${id}'
     `)
   }
 
