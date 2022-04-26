@@ -25,8 +25,10 @@ interface Standard {
 //
 
 export interface Car extends Standard {
-  capacity: number
-  model: string
+  _feedbacksCount: number
+  _feedbacksSum: number
+  capacity?: number
+  name: string
   personId: Id
 }
 
@@ -39,26 +41,18 @@ export interface Country extends Standard {
 //
 
 export interface Feedback extends Standard {
-  personId: Id
+  personId: Id // from
   stars: number
-  tripId: Id
+  tripId: Id // to
 }
 
 //
 
-export enum NeedStatus {
-  Todo = 0,
-  Arranged = 1,
-  Canceled = 2,
-  Done = 3,
-}
-
 export interface Need extends Standard {
-  day: Epoch
+  deadline: Epoch
   personId: Id
   placeId: Id
-  price: number
-  status: NeedStatus
+  price?: number
   tripId: Id
 }
 
@@ -67,69 +61,43 @@ export interface Need extends Standard {
 export interface Person extends Standard {
   _feedbacksCount: number
   _feedbacksSum: number
-  _tripsCount: number
   firstname: string
-  lastname: string
+  lastname?: string
   userid: string
-  username: string
+  username?: string
 }
 
 //
 
-enum PlaceStatus {
-  Active = 0,
-  Inactive = 1,
-}
-
 export interface Place extends Standard {
   countryId: Id
   name: string
-  status: PlaceStatus
 }
 
 //
 
 export enum TripStatus {
-  Todo = 0,
-  Arranged = 1,
-  Canceled = 2,
-  Done = 3,
+  Offered = 0,
+  Confirmed = 1,
+  Finished = 2,
 }
 
 export interface Trip extends Standard {
-  capacityMax: number
-  capacityMin: number
+  capacityMax?: number
+  capacityMin?: number
+  carId?: Id
   day: Epoch
-  name: string
+  name?: string
+  personId: Id
   status: TripStatus
 }
 
 //
 
-export interface TripCar extends Standard {
-  carId: Id
-  tripId: Id
-}
-
-//
-
-export enum TripPersonRole {
-  Driver = 0,
-  Passenger = 1,
-}
-
-export interface TripPerson extends Standard {
-  personId: Id
-  role: TripPersonRole
-  tripId: Id
-}
-
-//
-
 export interface TripPlace extends Standard {
-  agenda: string
+  agenda?: string
   placeId: Id
-  price: number
-  time: Epoch
+  price?: number
+  time?: Epoch
   tripId: Id
 }

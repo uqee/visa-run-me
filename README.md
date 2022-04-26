@@ -1,19 +1,19 @@
 # visa-run-me
 
-## 2022-04-24
+## Manuals
 
     https://cloud.yandex.com/docs/functions/tutorials/telegram-bot-serverless
     https://cloud.yandex.com/en/docs/functions/tutorials/connect-to-ydb-nodejs
     https://cloud.yandex.com/en/docs/ydb/yql/reference/
 
-principles
+## Principles
 
     items are immutable to not track dependencies
 
-wizards
+## Use Cases
 
     create:car
-      enter:car.model
+      enter:car.name
       ? enter:car.capacity
 
     delete:car
@@ -23,45 +23,50 @@ wizards
 
     create:need
       choose:need.place ? create:place
-      enter:need.day
-      enter:need.price
+      enter:need.deadline
+      ? enter:need.price
 
     delete:need
       choose:need ! created
       set:need.deleted
 
 
-    create:feedback
-      choose:trip ! created or accepted, done
-      choose:tripPerson ! without feedback
-      enter:feedback.stars
-
-
     create:place
       choose:place.country
       enter:place.name
 
-    ? update:place
+    delete:place
       choose:place ! created
-      choose:place.status
-
-    ? delete:place
-        choose:place ! created
+      set:place.deleted
 
 
     create:trip
-        ? enter:trip.name
-        ? enter.trip.day
-        ? enter:trip.capacityMin
-        ? enter:trip.capacityMax
-        <loop>
-          choose:place
-          enter:tripPlace.price
-          ? enter:tripPlace.time
-          ? enter:tripPlace.agenda
-
-    ? update:trip
-        choose:trip ! created
-        choose:trip.status
+      enter.trip.day
+      ? enter:trip.name
+      ? enter:trip.capacityMin
+      ? enter:trip.capacityMax
+      ? choose:trip.car ? create:car
+      <loop>
+        choose:trip.place ? create:place
+        ? enter:trip.place.price
+        ? enter:trip.place.time
+        ? enter:trip.place.agenda
+      set:trip.status=offered
 
     accept:trip
+      choose:trip
+      choose:need ! created ? create:need
+      set:need.trip=trip
+
+    confirm:trip
+      choose:trip ! created
+      set:trip.status=confirmed
+
+    feedback:trip
+      choose:trip ! created or accepted, trip.status=finished
+      choose:trip.person ! without feedback
+      enter:feedback.stars
+
+    finish:trip
+      choose:trip ! created
+      set:trip.status=finished

@@ -6,8 +6,6 @@ drop table needs;
 drop table persons;
 drop table places;
 drop table trips;
-drop table tripCars;
-drop table tripPersons;
 drop table tripPlaces;
 
 commit;
@@ -23,8 +21,10 @@ create table _caches (
 );
 
 create table cars (
+  _feedbacksCount uint32,
+  _feedbacksSum uint32,
   capacity uint8,
-  model utf8,
+  name utf8,
   personId string,
 
   created uint32,
@@ -45,9 +45,9 @@ create table countries (
 );
 
 create table feedbacks (
-  personId string,
+  personId string, -- from
   stars uint8,
-  tripId string,
+  tripId string, -- to
 
   created uint32,
   deleted uint32,
@@ -57,11 +57,10 @@ create table feedbacks (
 );
 
 create table needs (
-  departure uint32,
+  deadline uint32,
   personId string,
   placeId string,
   price uint8,
-  status uint8,
   tripId string,
 
   created uint32,
@@ -74,7 +73,6 @@ create table needs (
 create table persons (
   _feedbacksCount uint32,
   _feedbacksSum uint32,
-  _tripsCount uint32,
   firstname utf8,
   lastname utf8,
   userid string,
@@ -91,7 +89,6 @@ create table persons (
 create table places (
   countryId string,
   name utf8,
-  status uint8,
 
   created uint32,
   deleted uint32,
@@ -103,32 +100,11 @@ create table places (
 create table trips (
   capacityMax uint8,
   capacityMin uint8,
-  name utf8,
-  start uint32,
-  status uint8,
-
-  created uint32,
-  deleted uint32,
-  id string,
-  ownerId string,
-  primary key (id)
-);
-
-create table tripCars (
   carId string,
-  tripId string,
-
-  created uint32,
-  deleted uint32,
-  id string,
-  ownerId string,
-  primary key (id)
-);
-
-create table tripPersons (
+  name utf8,
+  day uint32,
   personId string,
-  role uint8,
-  tripId string,
+  status uint8, -- offered | confirmed | finished
 
   created uint32,
   deleted uint32,
@@ -139,10 +115,9 @@ create table tripPersons (
 
 create table tripPlaces (
   agenda utf8,
-  arrival uint32,
-  duration uint32,
   placeId string,
   price uint8,
+  time uint32,
   tripId string,
 
   created uint32,
