@@ -6,8 +6,7 @@ import { MaybePromise } from 'telegraf/typings/composer.d'
 import { Context } from 'telegraf/typings/context.d'
 import { MiddlewareFn } from 'telegraf/typings/middleware.d'
 
-import { timestampFromDate } from '../utils'
-import { _Session, ydb } from '../ydb'
+import { _Cache, ydb } from '../ydb'
 
 export interface SessionStore<T> {
   get: (name: string) => MaybePromise<T | undefined>
@@ -66,36 +65,32 @@ export class YdbSessionStore<T> implements SessionStore<T> {
 
   // eslint-disable-next-line class-methods-use-this
   public async delete(key: string): Promise<void> {
-    await ydb.execute(`delete from _sessions where key == '${key}'`)
+    await ydb._cachesDelete({ key })
   }
 
   // eslint-disable-next-line class-methods-use-this
   public async get(key: string): Promise<T | undefined> {
-    const result = await ydb.execute<Pick<_Session, 'value'>>(
-      `select value from _sessions where key == '${key}'`,
-    )
-    const valueString: string | undefined = result[0]?.[0]?.value
-    const valueObject: YdbSessionStoreValue<T> | undefined =
-      valueString === undefined ? valueString : (JSON.parse(valueString) as YdbSessionStoreValue<T>)
+    const _cache: _Cache | undefined = await ydb._cachesSelectByKey({ key })
+    if (!_cache || !_cache.value) return undefined
+    const { expires, session } = JSON.parse(_cache.value) as YdbSessionStoreValue<T>
 
-    if (valueObject === undefined) {
-      return undefined
-    } else if (valueObject.expires < Date.now()) {
+    if (expires < Date.now()) {
       await this.delete(key)
       return undefined
     }
-    return valueObject.session
+
+    return session
   }
 
   // eslint-disable-next-line class-methods-use-this
   public async set(key: string, value: T): Promise<void> {
-    const valueString: string = JSON.stringify({
-      expires: Date.now() + this.ttl,
-      session: value,
+    await ydb._cachesReplace({
+      key,
+      value: JSON.stringify({
+        expires: Date.now() + this.ttl,
+        session: value,
+      }),
     })
-    await ydb.execute(
-      `replace into _sessions (key, value, created) values ('${key}', '${valueString}', ${timestampFromDate()})`,
-    )
   }
 }
 

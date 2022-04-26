@@ -1,4 +1,4 @@
-drop table _sessions;
+drop table _caches;
 drop table cars;
 drop table countries;
 drop table feedbacks;
@@ -14,7 +14,7 @@ commit;
 
 --
 
-create table _sessions (
+create table _caches (
   key string,
   value string,
 
@@ -23,42 +23,40 @@ create table _sessions (
 );
 
 create table cars (
-  id string,
-
   capacity uint8,
   model utf8,
   personId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table countries (
-  id string,
-
   name utf8,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table feedbacks (
-  id string,
-
   personId string,
   stars uint8,
   tripId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table needs (
-  id string,
-
   departure uint32,
   personId string,
   placeId string,
@@ -67,76 +65,79 @@ create table needs (
   tripId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table persons (
-  id string,
-
   _feedbacksCount uint32,
   _feedbacksSum uint32,
   _tripsCount uint32,
-  tgid string,
-  tgfullname utf8,
-  tgusername string,
+  firstname utf8,
+  lastname utf8,
+  userid string,
+  username string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   index persons_tgid_idx global on (tgid),
   primary key (id)
 );
 
 create table places (
-  id string,
-
   countryId string,
-  name utf8,
-
-  created uint32,
-  updated uint32,
-  primary key (id)
-);
-
-create table trips (
-  id string,
-
-  capacityMax uint8,
-  capacityMin uint8,
   name utf8,
   status uint8,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
+  primary key (id)
+);
+
+create table trips (
+  capacityMax uint8,
+  capacityMin uint8,
+  name utf8,
+  start uint32,
+  status uint8,
+
+  created uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table tripCars (
-  id string,
-
   carId string,
   tripId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table tripPersons (
-  id string,
-
   personId string,
   role uint8,
   tripId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 create table tripPlaces (
-  id string,
-
   agenda utf8,
   arrival uint32,
   duration uint32,
@@ -145,13 +146,20 @@ create table tripPlaces (
   tripId string,
 
   created uint32,
-  updated uint32,
+  deleted uint32,
+  id string,
+  ownerId string,
   primary key (id)
 );
 
 commit;
 
 --
+
+replace into persons
+  (_feedbacksCount, _feedbacksSum, _tripsCount, firstname, lastname, userid, username, created, deleted, id, ownerId)
+values
+  (0, 0, 0, 'Denis', 'Zhbankov', '115469675', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '4e583a933d9')
 
 replace into countries
   (id, name, created, updated)

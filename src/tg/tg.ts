@@ -1,7 +1,5 @@
 import { Context, Markup, Scenes, Telegraf } from 'telegraf'
-import { uid } from 'uid'
 
-import { timestampFromDate } from '../utils'
 import { Person, ydb } from '../ydb'
 import { session } from './session'
 
@@ -56,31 +54,14 @@ class Tg {
 
     this.telegraf.start(async (context) => {
       if (this.debug) console.log('TG : start')
-      const { id: tgid, first_name, last_name, username } = context.message.from
-      const tgfullname: string = first_name + (last_name ? ' ' + last_name : '')
-      const tgusername: string = username ?? 'null'
+      const { id, first_name: firstname, last_name: lastname, username } = context.message.from
+      const userid: string = `${id}`
 
-      //
+      const person: Person | undefined = await ydb.personsSelectByUserid({ userid })
+      if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, username })
+      else await ydb.personsInsert({ firstname, lastname, userid, username })
 
-      const response1 = await ydb.execute<Pick<Person, 'id'>>(
-        `select id from persons where tgid == '${tgid}'`,
-      )
-      const id: string | undefined = response1[0]?.[0]?.id
-      if (this.debug) console.log('TG : start : response1', JSON.stringify(response1))
-
-      //
-
-      const timestamp: number = timestampFromDate()
-      const response2 = await ydb.execute(
-        id
-          ? `replace into persons (id, tgid, tgfullname, tgusername, updated) values ('${id}', '${tgid}', '${tgfullname}', '${tgusername}', ${timestamp})`
-          : `insert into persons (id, _feedbacksCount, _feedbacksSum, _tripsCount, tgid, tgfullname, tgusername, created, updated) values ('${uid()}', 0, 0, 0, '${tgid}', '${tgfullname}', '${tgusername}', ${timestamp}, ${timestamp})`,
-      )
-      if (this.debug) console.log('TG : start : response2', JSON.stringify(response2))
-
-      //
-
-      await context.reply(`Добро пожаловать, ${tgfullname}!`)
+      await context.reply(`Добро пожаловать, ${firstname}!`)
     })
 
     this.telegraf.command('feedback', async (context) => {

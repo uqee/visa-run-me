@@ -1,17 +1,25 @@
-export interface _Session {
-  created: number
+type Epoch = number // timestamp, precision 1 second
+type Id = string // uid, 11 chars
+
+//
+// non-standard
+//
+
+export interface _Cache {
+  created: Epoch
   key: string
   value: string
 }
 
 //
-//
+// standard
 //
 
 interface Standard {
-  id: string
-  created: number
-  updated: number
+  created: Epoch
+  deleted: Epoch
+  id: Id
+  ownerId: Id
 }
 
 //
@@ -19,7 +27,7 @@ interface Standard {
 export interface Car extends Standard {
   capacity: number
   model: string
-  personId: string
+  personId: Id
 }
 
 //
@@ -31,9 +39,9 @@ export interface Country extends Standard {
 //
 
 export interface Feedback extends Standard {
-  personId: string
+  personId: Id
   stars: number
-  tripId: string
+  tripId: Id
 }
 
 //
@@ -46,12 +54,12 @@ export enum NeedStatus {
 }
 
 export interface Need extends Standard {
-  departure: number
-  personId: string
-  placeId: string
+  day: Epoch
+  personId: Id
+  placeId: Id
   price: number
   status: NeedStatus
-  tripId: string
+  tripId: Id
 }
 
 //
@@ -60,16 +68,23 @@ export interface Person extends Standard {
   _feedbacksCount: number
   _feedbacksSum: number
   _tripsCount: number
-  tgid: string
-  tgfullname: string
-  tgusername: string
+  firstname: string
+  lastname: string
+  userid: string
+  username: string
 }
 
 //
 
+enum PlaceStatus {
+  Active = 0,
+  Inactive = 1,
+}
+
 export interface Place extends Standard {
-  countryId: string
+  countryId: Id
   name: string
+  status: PlaceStatus
 }
 
 //
@@ -84,6 +99,7 @@ export enum TripStatus {
 export interface Trip extends Standard {
   capacityMax: number
   capacityMin: number
+  day: Epoch
   name: string
   status: TripStatus
 }
@@ -91,8 +107,8 @@ export interface Trip extends Standard {
 //
 
 export interface TripCar extends Standard {
-  carId: string
-  tripId: string
+  carId: Id
+  tripId: Id
 }
 
 //
@@ -103,18 +119,17 @@ export enum TripPersonRole {
 }
 
 export interface TripPerson extends Standard {
-  personId: string
+  personId: Id
   role: TripPersonRole
-  tripId: string
+  tripId: Id
 }
 
 //
 
 export interface TripPlace extends Standard {
   agenda: string
-  arrival: number
-  duration: number
-  placeId: string
+  placeId: Id
   price: number
-  tripId: string
+  time: Epoch
+  tripId: Id
 }
