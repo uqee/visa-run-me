@@ -64,7 +64,6 @@ class Ydb {
       insert into persons (
         _feedbacksCount,
         _feedbacksSum,
-        _tripsCount,
         firstname,
         lasync astname,
         userid,
@@ -74,7 +73,6 @@ class Ydb {
         id,
         ownerId
       ) values (
-        0,
         0,
         0,
         '${firstname}',

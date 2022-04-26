@@ -82,7 +82,7 @@ create table persons (
   deleted uint32,
   id string,
   ownerId string,
-  index persons_tgid_idx global on (tgid),
+  index persons_userid_idx global on (userid),
   primary key (id)
 );
 
@@ -132,52 +132,52 @@ commit;
 --
 
 replace into persons
-  (_feedbacksCount, _feedbacksSum, _tripsCount, firstname, lastname, userid, username, created, deleted, id, ownerId)
+  (_feedbacksCount, _feedbacksSum, firstname, lastname, userid, username, created, deleted, id, ownerId)
 values
-  (0, 0, 0, 'Denis', 'Zhbankov', '115469675', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '4e583a933d9')
+  (0, 0, 'Denis', 'Zhbankov', '115469675', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '4e583a933d9');
 
 replace into countries
-  (id, name, created, updated)
+  (name, created, deleted, id, ownerId)
 values
-  ('hbcco3hgy73', 'Albania',              1650900000, 1650900000),
-  ('wugw29mxv1w', 'Bosnia i Herzegovina', 1650900000, 1650900000),
-  ('8jnteunp9pl', 'Croatia',              1650900000, 1650900000),
-  ('ifippr1zzqt', 'Montenegro',           1650900000, 1650900000),
-  ('jyqfnqjm3xq', 'Serbia',               1650900000, 1650900000);
+  ('Albania',              1650900000, null, 'hbcco3hgy73', '4e583a933d9'),
+  ('Bosnia i Herzegovina', 1650900000, null, 'wugw29mxv1w', '4e583a933d9'),
+  ('Croatia',              1650900000, null, '8jnteunp9pl', '4e583a933d9'),
+  ('Montenegro',           1650900000, null, 'ifippr1zzqt', '4e583a933d9'),
+  ('Serbia',               1650900000, null, 'jyqfnqjm3xq', '4e583a933d9');
 
 replace into places
-  (id, countryId, name, created, updated)
+  (countryId, name, created, deleted, id, ownerId)
 values
-  ('nkstbktengu', 'hbcco3hgy73', 'Bashkimi',     1650900000, 1650900000),
-  ('lxt7ulyiw4i', 'hbcco3hgy73', 'Koplik',       1650900000, 1650900000),
-  ('6wom34y1tie', 'hbcco3hgy73', 'Shkodër',      1650900000, 1650900000),
+  ('hbcco3hgy73', 'Bashkimi',     1650900000, null, 'nkstbktengu', '4e583a933d9'),
+  ('hbcco3hgy73', 'Koplik',       1650900000, null, 'lxt7ulyiw4i', '4e583a933d9'),
+  ('hbcco3hgy73', 'Shkodër',      1650900000, null, '6wom34y1tie', '4e583a933d9'),
 
-  ('s1rwfm263u7', 'wugw29mxv1w', 'Bileća',       1650900000, 1650900000),
-  ('to7nyp5fcng', 'wugw29mxv1w', 'Gacko',        1650900000, 1650900000),
-  ('jq6yo1m65uc', 'wugw29mxv1w', 'Goražde',      1650900000, 1650900000),
-  ('7aku8bdzz9y', 'wugw29mxv1w', 'Trebinje',     1650900000, 1650900000),
+  ('wugw29mxv1w', 'Bileća',       1650900000, null, 's1rwfm263u7', '4e583a933d9'),
+  ('wugw29mxv1w', 'Gacko',        1650900000, null, 'to7nyp5fcng', '4e583a933d9'),
+  ('wugw29mxv1w', 'Goražde',      1650900000, null, 'jq6yo1m65uc', '4e583a933d9'),
+  ('wugw29mxv1w', 'Trebinje',     1650900000, null, '7aku8bdzz9y', '4e583a933d9'),
 
-  ('jh6cq0gf4hr', '8jnteunp9pl', 'Dubrovnik',    1650900000, 1650900000),
+  ('8jnteunp9pl', 'Dubrovnik',    1650900000, null, 'jh6cq0gf4hr', '4e583a933d9'),
 
-  ('no5va8kiiq0', 'ifippr1zzqt', 'Bar',          1650900000, 1650900000),
-  ('sdu4cz2s6w4', 'ifippr1zzqt', 'Berane',       1650900000, 1650900000),
-  ('vvajmv2kn7s', 'ifippr1zzqt', 'Bijelo Polje', 1650900000, 1650900000),
-  ('aonbpsekpi1', 'ifippr1zzqt', 'Budva',        1650900000, 1650900000),
-  ('sor8du5ww88', 'ifippr1zzqt', 'Cetinje',      1650900000, 1650900000),
-  ('w87ms7tlgt1', 'ifippr1zzqt', 'Herceg Novi',  1650900000, 1650900000),
-  ('49ap5tab5vl', 'ifippr1zzqt', 'Kotor',        1650900000, 1650900000),
-  ('x06f2x4vw5g', 'ifippr1zzqt', 'Nikšić',       1650900000, 1650900000),
-  ('ojhzb7hrmci', 'ifippr1zzqt', 'Petrovac',     1650900000, 1650900000),
-  ('by4lcxa24qn', 'ifippr1zzqt', 'Pljevlja',     1650900000, 1650900000),
-  ('omkz5u9ssz2', 'ifippr1zzqt', 'Podgorica',    1650900000, 1650900000),
-  ('0ann5o0onrz', 'ifippr1zzqt', 'Rožaje',       1650900000, 1650900000),
-  ('i27gd9iql29', 'ifippr1zzqt', 'Sitnica',      1650900000, 1650900000),
-  ('s2zpnylzn5x', 'ifippr1zzqt', 'Tivat',        1650900000, 1650900000),
-  ('d3lvr56s0o8', 'ifippr1zzqt', 'Ulcinj',       1650900000, 1650900000),
+  ('ifippr1zzqt', 'Bar',          1650900000, null, 'no5va8kiiq0', '4e583a933d9'),
+  ('ifippr1zzqt', 'Berane',       1650900000, null, 'sdu4cz2s6w4', '4e583a933d9'),
+  ('ifippr1zzqt', 'Bijelo Polje', 1650900000, null, 'vvajmv2kn7s', '4e583a933d9'),
+  ('ifippr1zzqt', 'Budva',        1650900000, null, 'aonbpsekpi1', '4e583a933d9'),
+  ('ifippr1zzqt', 'Cetinje',      1650900000, null, 'sor8du5ww88', '4e583a933d9'),
+  ('ifippr1zzqt', 'Herceg Novi',  1650900000, null, 'w87ms7tlgt1', '4e583a933d9'),
+  ('ifippr1zzqt', 'Kotor',        1650900000, null, '49ap5tab5vl', '4e583a933d9'),
+  ('ifippr1zzqt', 'Nikšić',       1650900000, null, 'x06f2x4vw5g', '4e583a933d9'),
+  ('ifippr1zzqt', 'Petrovac',     1650900000, null, 'ojhzb7hrmci', '4e583a933d9'),
+  ('ifippr1zzqt', 'Pljevlja',     1650900000, null, 'by4lcxa24qn', '4e583a933d9'),
+  ('ifippr1zzqt', 'Podgorica',    1650900000, null, 'omkz5u9ssz2', '4e583a933d9'),
+  ('ifippr1zzqt', 'Rožaje',       1650900000, null, '0ann5o0onrz', '4e583a933d9'),
+  ('ifippr1zzqt', 'Sitnica',      1650900000, null, 'i27gd9iql29', '4e583a933d9'),
+  ('ifippr1zzqt', 'Tivat',        1650900000, null, 's2zpnylzn5x', '4e583a933d9'),
+  ('ifippr1zzqt', 'Ulcinj',       1650900000, null, 'd3lvr56s0o8', '4e583a933d9'),
 
-  ('nyt1lvyamwh', 'jyqfnqjm3xq', 'Gostun',       1650900000, 1650900000),
-  ('ron3dvdly4n', 'jyqfnqjm3xq', 'Jabuka',       1650900000, 1650900000),
-  ('woabq2ttqgq', 'jyqfnqjm3xq', 'Krnjača',      1650900000, 1650900000),
-  ('83kfaps9nu5', 'jyqfnqjm3xq', 'Ribariće',     1650900000, 1650900000);
+  ('jyqfnqjm3xq', 'Gostun',       1650900000, null, 'nyt1lvyamwh', '4e583a933d9'),
+  ('jyqfnqjm3xq', 'Jabuka',       1650900000, null, 'ron3dvdly4n', '4e583a933d9'),
+  ('jyqfnqjm3xq', 'Krnjača',      1650900000, null, 'woabq2ttqgq', '4e583a933d9'),
+  ('jyqfnqjm3xq', 'Ribariće',     1650900000, null, '83kfaps9nu5', '4e583a933d9');
 
 commit;
