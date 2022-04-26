@@ -4,7 +4,7 @@ import { Telegraf } from 'telegraf'
 import { encodeBase64ToUtf8 } from './encode'
 import { TelegrafContext, telegrafSetup } from './telegraf'
 import type { YC } from './yc.d'
-import { ydbSetup } from './ydb'
+import { ydb } from './ydb'
 
 const { DEBUG, TG_BOT_TOKEN, YC_DB_NAME } = process.env
 if (!TG_BOT_TOKEN || !YC_DB_NAME) throw new Error('Invalid ENV')
@@ -15,13 +15,13 @@ const telegraf: Telegraf<TelegrafContext> = telegrafSetup(TG_BOT_TOKEN, debug)
 
 async function handler(request: YC.CF.Request, context: YC.CF.Context): Promise<YC.CF.Response> {
   if (debug) {
-    console.log('request', JSON.stringify(request))
-    console.log('context', JSON.stringify(context))
+    console.log('YC : request', JSON.stringify(request))
+    console.log('YC : context', JSON.stringify(context))
   }
 
   // ydb
 
-  ydbSetup(YC_DB_NAME!, context.token.access_token, debug)
+  ydb.setup(YC_DB_NAME!, context.token.access_token, debug)
 
   // tg
 

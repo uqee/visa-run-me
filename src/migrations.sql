@@ -1,12 +1,12 @@
 -- clean
 
+  drop table _sessions;
   drop table cars;
   drop table countries;
   drop table feedbacks;
   drop table needs;
   drop table persons;
   drop table places;
-  drop table sessions;
   drop table trips;
   drop table tripCars;
   drop table tripPersons;
@@ -15,6 +15,13 @@
   commit;
 
 -- tables
+
+  create table _sessions (
+    key string,
+    value string,
+    created uint32,
+    primary key (key)
+  );
 
   create table cars (
     id string,
@@ -94,13 +101,6 @@
     created uint32,
     updated uint32,
     primary key (id)
-  );
-
-  create table sessions (
-    key string,
-    value string,
-    created uint32,
-    primary key (key)
   );
 
   create table trips (

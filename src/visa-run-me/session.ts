@@ -7,7 +7,7 @@ import { Context } from 'telegraf/typings/context.d'
 import { MiddlewareFn } from 'telegraf/typings/middleware.d'
 
 import { timestampFromDate } from './timestamp'
-import { ydbExecute } from './ydb'
+import { ydb } from './ydb'
 
 export interface SessionStore<T> {
   get: (name: string) => MaybePromise<T | undefined>
@@ -66,13 +66,15 @@ export class YdbSessionStore<T> implements SessionStore<T> {
 
   // eslint-disable-next-line class-methods-use-this
   public async delete(key: string): Promise<void> {
-    await ydbExecute(`delete from sessions where key == '${key}'`)
+    await ydb.execute(`delete from _sessions where key == '${key}'`)
   }
 
   // eslint-disable-next-line class-methods-use-this
   public async get(key: string): Promise<T | undefined> {
-    const result = await ydbExecute(`select value from sessions where key == '${key}'`)
-    const valueString: string | undefined = result[0]?.[0]?.value as string | undefined
+    const result = await ydb.execute<{ value: string }>(
+      `select value from _sessions where key == '${key}'`,
+    )
+    const valueString: string | undefined = result[0]?.[0]?.value
     const valueObject: YdbSessionStoreValue<T> | undefined =
       valueString === undefined ? valueString : (JSON.parse(valueString) as YdbSessionStoreValue<T>)
 
@@ -91,8 +93,8 @@ export class YdbSessionStore<T> implements SessionStore<T> {
       expires: Date.now() + this.ttl,
       session: value,
     })
-    await ydbExecute(
-      `replace into sessions (key, value, created) values ('${key}', '${valueString}', ${timestampFromDate()})`,
+    await ydb.execute(
+      `replace into _sessions (key, value, created) values ('${key}', '${valueString}', ${timestampFromDate()})`,
     )
   }
 }

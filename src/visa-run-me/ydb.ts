@@ -1,29 +1,32 @@
-import { Ydb } from 'ydb-sdk-lite'
+import { Ydb as Sdk } from 'ydb-sdk-lite'
 
-let debug_: boolean | undefined
-let iamToken: string | undefined
-let ydb: Ydb | undefined
+type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
-export async function ydbExecute<T extends Array<Array<Record<string, unknown>>>>(
-  query: string,
-): Promise<T> {
-  try {
-    const result = await ydb!.executeDataQuery(query)
-    return result as T
-  } catch (error) {
-    if (debug_) console.log(query, '\n', error)
-    throw error
+class Ydb {
+  private accessToken: string | undefined
+  private debug: boolean | undefined
+  private sdk: Sdk | undefined
+
+  public async execute<T>(query: string): Promise<SdkExecuteDataQueryReturnType<T>> {
+    try {
+      const result = await this.sdk!.executeDataQuery(query)
+      return result as SdkExecuteDataQueryReturnType<T>
+    } catch (error) {
+      if (this.debug) console.log(query, '\n', error)
+      throw error
+    }
+  }
+
+  public setup(dbName: string, accessToken: string, debug: boolean): void {
+    if (accessToken !== this.accessToken) {
+      this.accessToken = accessToken
+      this.sdk = undefined
+    }
+    if (this.sdk === undefined) {
+      this.sdk = new Sdk({ dbName, iamToken: this.accessToken })
+    }
+    this.debug = debug
   }
 }
 
-export function ydbSetup(dbName: string, accessToken: string, debug: boolean): Ydb {
-  if (accessToken !== iamToken) {
-    iamToken = accessToken
-    ydb = undefined
-  }
-  if (ydb === undefined) {
-    ydb = new Ydb({ dbName, iamToken })
-  }
-  debug_ = debug
-  return ydb
-}
+export const ydb: Ydb = new Ydb()
