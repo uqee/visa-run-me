@@ -6,8 +6,8 @@ import { MaybePromise } from 'telegraf/typings/composer.d'
 import { Context } from 'telegraf/typings/context.d'
 import { MiddlewareFn } from 'telegraf/typings/middleware.d'
 
-import { timestampFromDate } from './timestamp'
-import { ydb } from './ydb'
+import { timestampFromDate } from './utils'
+import { _Session, ydb } from './ydb'
 
 export interface SessionStore<T> {
   get: (name: string) => MaybePromise<T | undefined>
@@ -71,7 +71,7 @@ export class YdbSessionStore<T> implements SessionStore<T> {
 
   // eslint-disable-next-line class-methods-use-this
   public async get(key: string): Promise<T | undefined> {
-    const result = await ydb.execute<{ value: string }>(
+    const result = await ydb.execute<Pick<_Session, 'value'>>(
       `select value from _sessions where key == '${key}'`,
     )
     const valueString: string | undefined = result[0]?.[0]?.value

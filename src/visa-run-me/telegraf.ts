@@ -2,8 +2,8 @@ import { Context, Markup, Scenes, Telegraf } from 'telegraf'
 import { uid } from 'uid'
 
 import { session } from './session'
-import { timestampFromDate } from './timestamp'
-import { ydb } from './ydb'
+import { timestampFromDate } from './utils'
+import { Person, ydb } from './ydb'
 
 interface TelegrafSession extends Scenes.SceneSession {}
 
@@ -57,7 +57,7 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf<Tele
 
     //
 
-    const response1 = await ydb.execute<{ id: string }>(
+    const response1 = await ydb.execute<Pick<Person, 'id'>>(
       `select id from persons where tgid == '${tgid}'`,
     )
     const id: string | undefined = response1[0]?.[0]?.id
