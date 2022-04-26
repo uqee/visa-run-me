@@ -4,8 +4,11 @@ import { uid } from 'uid'
 import { timestampFromDate } from './timestamp'
 import { ydbExecute } from './ydb'
 
+interface TelegrafSession extends Scenes.SceneSession {}
+
 export interface TelegrafContext extends Context {
-  scene: Scenes.SceneContextScene<Context>
+  scene: Scenes.SceneContextScene<TelegrafContext>
+  session: TelegrafSession
 }
 
 export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf<TelegrafContext> {
@@ -30,7 +33,7 @@ export function telegrafSetup(tgBotToken: string, debug: boolean): Telegraf<Tele
 
   const stage = new Scenes.Stage<Scenes.SceneContext>([greeterScene, echoScene])
   telegraf.use(session())
-  telegraf.use(stage.middleware() as never)
+  telegraf.use(stage.middleware())
 
   telegraf.command('greeter', async (ctx) => ctx.scene.enter('greeter'))
   telegraf.command('echo', async (ctx) => ctx.scene.enter('echo'))
