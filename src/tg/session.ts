@@ -6,8 +6,8 @@ import { MaybePromise } from 'telegraf/typings/composer.d'
 import { Context } from 'telegraf/typings/context.d'
 import { MiddlewareFn } from 'telegraf/typings/middleware.d'
 
-import { timestampFromDate } from './utils'
-import { _Session, ydb } from './ydb'
+import { timestampFromDate } from '../utils'
+import { _Session, ydb } from '../ydb'
 
 export interface SessionStore<T> {
   get: (name: string) => MaybePromise<T | undefined>
