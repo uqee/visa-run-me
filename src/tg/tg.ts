@@ -28,13 +28,8 @@ class Tg {
     ARROW_RIGHT: '→',
     ARROW_UP: '↑',
     CHECKMARK: '✓',
-    CORNER_BOTTOM_LEFT: '⌞',
-    CORNER_BOTTOM_RIGHT: '⌟',
-    CORNER_TOP_LEFT: '⌜',
-    CORNER_TOP_RIGHT: '⌝',
     DOT: '⋅',
     HEART: '♥',
-    HOME: '⌂',
     MINUS: '−',
     MULT: '×',
     PLUS: '+',
@@ -48,11 +43,11 @@ class Tg {
     R_ANY_ACTION: /.*/,
     S_CREATE: `${Tg.$ymbols.PLUS} Добавить`,
     S_DELETE: `${Tg.$ymbols.MINUS} Удалить`,
-    S_FEEDBACK: `Оставьте отзыв или предложение ${Tg.$ymbols.ARROW_RIGHT} @denis_zhbankov`,
+    S_FEEDBACK: 'Оставьте отзыв или предложение @denis_zhbankov',
     S_GET: `${Tg.$ymbols.ARROW_DOWN} Загрузить`,
     S_GET_MORE: `${Tg.$ymbols.ARROW_DOWN} Загрузить еще`,
     S_GET_OK: `${Tg.$ymbols.CHECKMARK} Загружено`,
-    S_HELP: `Используйте кнопки под сообщениями ${Tg.$ymbols.ARROW_DOWN}`,
+    S_HELP: 'Используйте кнопки под сообщениями',
   } as const
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -154,6 +149,10 @@ class Tg {
     /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   })()
 
+  private static monospace(text: string): string {
+    return `\`${text}\``
+  }
+
   private static setupCommands(telegraf: Telegraf<TgContext>): void {
     //
     telegraf.start(async (context) => {
@@ -165,24 +164,24 @@ class Tg {
       else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
 
       await context.reply(`Dobro došli, ${firstname} ${Tg.$ymbols.HEART}`)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
         Tg.Routes.HOME.keyboard,
       )
     })
 
     telegraf.help(async (context) => {
       await context.reply(Tg.Constants.S_HELP)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
         Tg.Routes.HOME.keyboard,
       )
     })
 
     telegraf.command('feedback', async (context) => {
       await context.reply(Tg.Constants.S_FEEDBACK)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
         Tg.Routes.HOME.keyboard,
       )
     })
@@ -194,16 +193,28 @@ class Tg {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
       await context.reply(Tg.Constants.S_HELP)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
         Tg.Routes.HOME.keyboard,
       )
     })
 
     telegraf.on('message', async (context) => {
       await context.reply(Tg.Constants.S_HELP)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
+        Tg.Routes.HOME.keyboard,
+      )
+    })
+  }
+
+  private static setupHome(telegraf: Telegraf<TgContext>): void {
+    //
+    telegraf.action(Tg.Routes.HOME.actionCode, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME.actionName), //
         Tg.Routes.HOME.keyboard,
       )
     })
@@ -214,8 +225,8 @@ class Tg {
     telegraf.action(Tg.Routes.HOME_PLACES_.actionCode, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await context.reply(
-        Tg.Routes.HOME_PLACES_.actionName, //
+      await context.replyWithMarkdownV2(
+        Tg.monospace(Tg.Routes.HOME_PLACES_.actionName), //
         Tg.Routes.HOME_PLACES_.keyboard,
       )
     })
@@ -240,12 +251,12 @@ class Tg {
 
         if (places.length === _limit) {
           const { actionName, keyboard } = Tg.Routes.HOME_PLACES(_offset + _limit)
-          await context.reply(actionName, keyboard)
+          await context.replyWithMarkdownV2(Tg.monospace(actionName), keyboard)
         }
 
         if (places.length < _limit) {
           const { keyboard } = Tg.Routes.HOME_PLACES(Infinity)
-          await context.reply(Tg.Constants.S_GET_OK, keyboard)
+          await context.replyWithMarkdownV2(Tg.monospace(Tg.Constants.S_GET_OK), keyboard)
         }
       }
     })
@@ -259,7 +270,6 @@ class Tg {
       if (user) {
         await ydb.placesDelete({ id })
         await context.deleteMessage()
-        // await context.reply(Tg.Constants.S_DELETE_OK)
       }
     })
   }
@@ -286,17 +296,9 @@ class Tg {
 
     telegraf.use(session())
     telegraf.use(stage.middleware())
+
     Tg.setupCommands(telegraf)
-
-    telegraf.action(Tg.Routes.HOME.actionCode, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
-      await context.reply(
-        Tg.Routes.HOME.actionName, //
-        Tg.Routes.HOME.keyboard,
-      )
-    })
-
+    Tg.setupHome(telegraf)
     Tg.setupPlaces(telegraf)
     Tg.setupFallbacks(telegraf)
 
