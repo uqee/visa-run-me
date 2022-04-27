@@ -138,6 +138,14 @@ commit;
 
 --
 
+delete from countries;
+delete from persons;
+delete from places;
+
+commit;
+
+--
+
 replace into persons
   (_feedbacksCount, _feedbacksSum, firstname, lastname, tgname, created, deleted, id, tgid)
 values

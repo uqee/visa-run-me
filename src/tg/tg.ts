@@ -1,9 +1,10 @@
+/* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
-import { Update, User } from '@grammyjs/types'
+import { InlineKeyboardMarkup, Update, User } from '@grammyjs/types'
 import { Context, Markup, Scenes, Telegraf } from 'telegraf'
 
-import { Person, Place, ydb } from '../ydb'
+import { ydb } from '../ydb'
 import { session } from './session'
 
 interface TgSession extends Scenes.SceneSession {}
@@ -13,233 +14,253 @@ export interface TgContext extends Context {
   session: TgSession
 }
 
-class Tg {
-  private static readonly _ = {
-    HOME: 'HOME',
-    HOME_DRIVER: 'HOME_DRIVER',
-    HOME_PASSENGER: 'HOME_PASSENGER',
-    HOME_SHARED: 'HOME_SHARED',
-    HOME_SHARED_PLACES: 'HOME_SHARED_PLACES',
-    HOME_SHARED_PLACES_CREATE: 'HOME_SHARED_PLACES_CREATE',
-    HOME_SHARED_PLACES_DELETE: 'HOME_SHARED_PLACES_DELETE',
-    HOME_SHARED_PLACES_GET: 'HOME_SHARED_PLACES_GET',
-  } as const
+interface TgRoute {
+  actionCode: string
+  actionName: string
+  actionPattern: RegExp
+  keyboard?: Markup.Markup<InlineKeyboardMarkup>
+}
 
-  private static readonly _Unicode = {
+class Tg {
+  private static readonly $ymbols = {
+    ARROW_DOWN: '↓',
+    ARROW_LEFT: '←',
+    ARROW_RIGHT: '→',
+    ARROW_UP: '↑',
     CHECKMARK: '✓',
-    DOWN: '↓',
+    CORNER_BOTTOM_LEFT: '⌞',
+    CORNER_BOTTOM_RIGHT: '⌟',
+    CORNER_TOP_LEFT: '⌜',
+    CORNER_TOP_RIGHT: '⌝',
+    DOT: '⋅',
     HEART: '♥',
-    LEFT: '←',
+    HOME: '⌂',
     MINUS: '−',
     MULT: '×',
     PLUS: '+',
-    RIGHT: '→',
-    UP: '↑',
+    QUOTE_DOUBLE_LEFT: '«',
+    QUOTE_DOUBLE_RIGHT: '»',
+    QUOTE_LEFT: '‹',
+    QUOTE_RIGHT: '›',
   } as const
 
-  private static readonly Dict = {
-    DELETE: `${Tg._Unicode.MULT} Удалить`,
-    DELETED: `${Tg._Unicode.CHECKMARK} Удалено`,
-    GET: `${Tg._Unicode.DOWN} Загрузить`,
-    GET_MORE: `${Tg._Unicode.DOWN} Загрузить еще`,
-    GET_NOMORE: `${Tg._Unicode.MULT} Больше нет`,
-    [Tg._.HOME]: '→ Домой',
-    [Tg._.HOME_DRIVER]: '→ Водителям',
-    HOME_DRIVER_CARS: '→ Машины',
-    // HOME_DRIVER_CARS_CREATE: '+ Добавить',
-    // HOME_DRIVER_CARS_DELETE: '- Удалить',
-    HOME_DRIVER_NEEDS: '→ Заявки',
-    // HOME_DRIVER_NEEDS_WRITE: '',
-    HOME_DRIVER_TRIPS: '→ Поездки',
-    // HOME_DRIVER_TRIPS_CONFIRM: '',
-    // HOME_DRIVER_TRIPS_CREATE: '',
-    // HOME_DRIVER_TRIPS_FINISH: '',
-    [Tg._.HOME_PASSENGER]: '→ Пассажирам',
-    HOME_PASSENGER_NEEDS: '→ Заявки',
-    // HOME_PASSENGER_NEEDS_CREATE: '',
-    // HOME_PASSENGER_NEEDS_DELETE: '',
-    HOME_PASSENGER_TRIPS: '→ Поездки',
-    // HOME_PASSENGER_TRIPS_ACCEPT: '',
-    // HOME_PASSENGER_TRIPS_FEEDBACK: '',
-    // HOME_PASSENGER_TRIPS_WRITE: '',
-    [Tg._.HOME_SHARED]: '→ Общее',
-    [Tg._.HOME_SHARED_PLACES]: '→ Города',
-    [Tg._.HOME_SHARED_PLACES_CREATE]: '+ Добавить',
-    [Tg._.HOME_SHARED_PLACES_DELETE]: '⨉× Удалить',
-    [Tg._.HOME_SHARED_PLACES_GET]: '↓ Загрузить',
-    ON_MESSAGE: `Используйте кнопки на клавиатуре ${Tg._Unicode.DOWN}`,
+  private static readonly Constants = {
+    R_ANY_ACTION: /.*/,
+    S_CREATE: `${Tg.$ymbols.PLUS} Добавить`,
+    S_DELETE: `${Tg.$ymbols.MINUS} Удалить`,
+    S_FEEDBACK: `Оставьте отзыв или предложение ${Tg.$ymbols.ARROW_RIGHT} @denis_zhbankov`,
+    S_GET: `${Tg.$ymbols.ARROW_DOWN} Загрузить`,
+    S_GET_MORE: `${Tg.$ymbols.ARROW_DOWN} Загрузить еще`,
+    S_GET_OK: `${Tg.$ymbols.CHECKMARK} Загружено`,
+    S_HELP: `Используйте кнопки под сообщениями ${Tg.$ymbols.ARROW_DOWN}`,
   } as const
-
-  private static readonly keyboard: typeof Markup.keyboard = (buttons: unknown[][]) => {
-    return Markup.keyboard(buttons).resize().oneTime()
-  }
-
-  private static readonly Keyboards = {
-    [Tg._.HOME]: Tg.keyboard([
-      [Tg.Dict.HOME_DRIVER, Tg.Dict.HOME_PASSENGER],
-      [Tg.Dict.HOME_SHARED],
-    ]),
-    [Tg._.HOME_DRIVER]: Tg.keyboard([[Tg.Dict.HOME]]),
-    [Tg._.HOME_PASSENGER]: Tg.keyboard([[Tg.Dict.HOME]]),
-    [Tg._.HOME_SHARED]: Tg.keyboard([[Tg.Dict.HOME_SHARED_PLACES], [Tg.Dict.HOME]]),
-    [Tg._.HOME_SHARED_PLACES]: Tg.keyboard([
-      [
-        Tg.Dict.HOME_SHARED_PLACES_CREATE,
-        // Tg.Dict.HOME_SHARED_PLACES_DELETE,
-        Tg.Dict.HOME_SHARED_PLACES_GET,
-      ],
-      [Tg.Dict.HOME_SHARED],
-    ]),
-    [Tg._.HOME_SHARED_PLACES_GET]: Tg.keyboard([[Tg.Dict.HOME]]),
-  }
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  private static createSceneDefault() {
-    const scene = new Scenes.BaseScene<Scenes.SceneContext>(Tg._.HOME_PASSENGER)
+  private static readonly Routes = (() => {
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
-    scene.enter(async (context) => {
-      await context.reply(Tg.Dict.HOME_PASSENGER, Tg.Keyboards.HOME_PASSENGER)
+    const HOME: TgRoute = {
+      actionCode: 'HOME',
+      actionName: `${Tg.$ymbols.QUOTE_DOUBLE_RIGHT} Дом`,
+      actionPattern: /^HOME$/,
+    }
+
+    //
+
+    const HOME_PLACES_CREATE: TgRoute = {
+      actionCode: 'HOME_PLACES_CREATE',
+      actionName: Tg.Constants.S_CREATE,
+      actionPattern: /^HOME_PLACES_CREATE$/,
+    }
+
+    //
+
+    const HOME_PLACES_DELETE = (id: string = ''): TgRoute => ({
+      actionCode: `HOME_PLACES_DELETE:${id}`,
+      actionName: Tg.Constants.S_DELETE,
+      actionPattern: /^HOME_PLACES_DELETE:(\w+)$/,
+      keyboard: Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            Tg.Constants.S_DELETE, //
+            `HOME_PLACES_DELETE:${id}`,
+          ),
+        ],
+      ]),
     })
+    const HOME_PLACES_DELETE_ = HOME_PLACES_DELETE()
 
-    scene.leave(async (context) => {
-      await context.reply(Tg.Dict.HOME, Tg.Keyboards.HOME)
+    //
+
+    const HOME_PLACES_GET = (offset: number = 0): TgRoute => ({
+      actionCode: `HOME_PLACES_GET:${offset}`,
+      actionName: offset === 0 ? Tg.Constants.S_GET : Tg.Constants.S_GET_MORE,
+      actionPattern: /^HOME_PLACES_GET:(\d+)$/,
     })
+    const HOME_PLACES_GET_ = HOME_PLACES_GET()
 
-    scene.hears(Tg.Dict.HOME, async (context) => {
-      await context.scene.leave()
+    //
+
+    const HOME_PLACES = (offset: number = 0): TgRoute => ({
+      actionCode: 'HOME_PLACES',
+      actionName: `${HOME.actionName} ${Tg.$ymbols.QUOTE_RIGHT} Места`,
+      actionPattern: /^HOME_PLACES$/,
+      keyboard: Markup.inlineKeyboard([
+        [
+          Markup.button.callback(
+            HOME_PLACES_CREATE.actionName, //
+            HOME_PLACES_CREATE.actionCode,
+          ),
+          Markup.button.callback(
+            HOME_PLACES_GET(offset).actionName,
+            HOME_PLACES_GET(offset).actionCode,
+            offset === Infinity,
+          ),
+        ],
+        [
+          Markup.button.callback(
+            HOME.actionName, //
+            HOME.actionCode,
+          ),
+        ],
+      ]),
     })
+    const HOME_PLACES_ = HOME_PLACES()
 
-    scene.on('message', async (context) => {
-      await context.reply(Tg.Dict.ON_MESSAGE)
-    })
+    //
 
-    return scene
-  }
+    HOME.keyboard = Markup.inlineKeyboard([
+      [
+        Markup.button.callback(
+          HOME_PLACES_.actionName, //
+          HOME_PLACES_.actionCode,
+        ),
+      ],
+    ])
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, max-lines-per-function
-  private static createScenePlaces() {
-    const scene = new Scenes.BaseScene<Scenes.SceneContext>(Tg._.HOME_SHARED_PLACES_GET)
+    //
 
-    scene.enter(async (context) => {
+    return {
+      HOME, //
+      HOME_PLACES,
+      HOME_PLACES_,
+      HOME_PLACES_CREATE,
+      HOME_PLACES_DELETE,
+      HOME_PLACES_DELETE_,
+      HOME_PLACES_GET,
+      HOME_PLACES_GET_,
+    } as const
+
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+  })()
+
+  private static setupCommands(telegraf: Telegraf<TgContext>): void {
+    //
+    telegraf.start(async (context) => {
+      const tgid: string = `${context.from.id}`
+      const { first_name: firstname, last_name: lastname, username: tgname } = context.message.from
+
+      const person = await ydb.personsSelectByTgid({ tgid })
+      if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, tgname })
+      else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
+
+      await context.reply(`Dobro došli, ${firstname} ${Tg.$ymbols.HEART}`)
       await context.reply(
-        Tg.Dict.GET,
-        Markup.inlineKeyboard([
-          Markup.button.callback(Tg.Dict.GET, 'GET:0'), //
-        ]),
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
       )
     })
 
-    scene.action(/^GET:(\d+)$/, async (context) => {
-      await context.editMessageReplyMarkup(null)
-
-      const _limit: number = 5
-      const _offset: number = +context.match[1]
-      const user: User | undefined = context.from
-      if (user) {
-        const tgid: string = `${user.id}`
-        const places: Place[] = await ydb.placesSelectByTgid({ _limit, _offset, tgid })
-        if (places.length === 0) await context.reply(Tg.Dict.GET_NOMORE)
-        else {
-          for (const place of places) {
-            await context.reply(
-              JSON.stringify(place),
-              Markup.inlineKeyboard([
-                Markup.button.callback(Tg.Dict.DELETE, `DELETE:${place.id}`), //
-              ]),
-            )
-          }
-
-          if (places.length === _limit) {
-            await context.reply(
-              Tg.Dict.GET_MORE,
-              Markup.inlineKeyboard([
-                Markup.button.callback(Tg.Dict.GET_MORE, `GET:${_offset + _limit}`),
-              ]),
-            )
-          }
-        }
-      }
-
-      await context.answerCbQuery()
+    telegraf.help(async (context) => {
+      await context.reply(Tg.Constants.S_HELP)
+      await context.reply(
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
+      )
     })
 
-    scene.action(/^DELETE:(\w+)$/, async (context) => {
+    telegraf.command('feedback', async (context) => {
+      await context.reply(Tg.Constants.S_FEEDBACK)
+      await context.reply(
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
+      )
+    })
+  }
+
+  private static setupFallbacks(telegraf: Telegraf<TgContext>): void {
+    //
+    telegraf.action(Tg.Constants.R_ANY_ACTION, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await context.reply(Tg.Constants.S_HELP)
+      await context.reply(
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
+      )
+    })
+
+    telegraf.on('message', async (context) => {
+      await context.reply(Tg.Constants.S_HELP)
+      await context.reply(
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
+      )
+    })
+  }
+
+  private static setupPlaces(telegraf: Telegraf<TgContext>): void {
+    //
+    telegraf.action(Tg.Routes.HOME_PLACES_.actionCode, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await context.reply(
+        Tg.Routes.HOME_PLACES_.actionName, //
+        Tg.Routes.HOME_PLACES_.keyboard,
+      )
+    })
+
+    telegraf.action(Tg.Routes.HOME_PLACES_GET_.actionPattern, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+
+      const user: User | undefined = context.from
+      if (user) {
+        //
+        const _limit: number = 5
+        const _offset: number = +context.match[1]
+        const tgid: string = `${user.id}`
+        const places = await ydb.placesSelectByTgid({ _limit, _offset, tgid })
+
+        for (const place of places) {
+          const { countryName, id, name } = place
+          const { keyboard } = Tg.Routes.HOME_PLACES_DELETE(id)
+          await context.reply(`${countryName} ${Tg.$ymbols.DOT} ${name}`, keyboard)
+        }
+
+        if (places.length === _limit) {
+          const { actionName, keyboard } = Tg.Routes.HOME_PLACES(_offset + _limit)
+          await context.reply(actionName, keyboard)
+        }
+
+        if (places.length < _limit) {
+          const { keyboard } = Tg.Routes.HOME_PLACES(Infinity)
+          await context.reply(Tg.Constants.S_GET_OK, keyboard)
+        }
+      }
+    })
+
+    telegraf.action(Tg.Routes.HOME_PLACES_DELETE_.actionPattern, async (context) => {
+      await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
       const id: string = context.match[1]
       const user: User | undefined = context.from
       if (user) {
         await ydb.placesDelete({ id })
-        await context.reply(Tg.Dict.DELETED)
+        await context.deleteMessage()
+        // await context.reply(Tg.Constants.S_DELETE_OK)
       }
-
-      await context.answerCbQuery()
-    })
-
-    scene.hears(Tg.Dict.HOME, async (context) => {
-      await context.scene.leave()
-    })
-
-    scene.leave(async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME)
-    })
-
-    scene.on('message', async (context) => {
-      await context.reply(Tg.Dict.ON_MESSAGE)
-    })
-
-    return scene
-  }
-
-  private static setupCommands(telegraf: Telegraf<TgContext>): void {
-    //
-
-    telegraf.start(async (context) => {
-      const tgid: string = `${context.from.id}`
-      const { first_name: firstname, last_name: lastname, username: tgname } = context.message.from
-
-      const person: Person | undefined = await ydb.personsSelectByTgid({ tgid })
-      if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, tgname })
-      else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
-
-      await context.reply(`Dobro došli, ${firstname} ${Tg._Unicode.HEART}`, Tg.Keyboards.HOME)
-    })
-
-    telegraf.help(async (context) => {
-      await context.reply(Tg.Dict.ON_MESSAGE)
-    })
-
-    telegraf.command('feedback', async (context) => {
-      await context.reply('Оставьте отзыв или предложение @denis_zhbankov.')
-    })
-  }
-
-  private static setupRouting(telegraf: Telegraf<TgContext>): void {
-    //
-
-    telegraf.hears(Tg.Dict.HOME, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME)
-    })
-
-    telegraf.hears(Tg.Dict.HOME_DRIVER, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME_DRIVER)
-    })
-
-    telegraf.hears(Tg.Dict.HOME_PASSENGER, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME_PASSENGER)
-    })
-
-    telegraf.hears(Tg.Dict.HOME_SHARED, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME_SHARED)
-    })
-
-    telegraf.hears(Tg.Dict.HOME_SHARED_PLACES, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME_SHARED_PLACES)
-    })
-
-    telegraf.hears(Tg.Dict.HOME_SHARED_PLACES_GET, async (context) => {
-      await context.reply(Tg._Unicode.CHECKMARK, Tg.Keyboards.HOME_SHARED_PLACES_GET)
-      await context.scene.enter(Tg._.HOME_SHARED_PLACES_GET)
     })
   }
 
@@ -254,25 +275,30 @@ class Tg {
   public _setup(tgBotToken: string, debug: boolean): void {
     const telegraf: Telegraf<TgContext> = new Telegraf<TgContext>(tgBotToken)
 
-    const stage = new Scenes.Stage<Scenes.SceneContext>([
-      Tg.createScenePlaces(), //
-      Tg.createSceneDefault(),
-    ])
-
     telegraf.use(async (context, next) => {
       if (debug) console.log('TG : context', JSON.stringify(context))
       return next()
     })
 
+    const stage = new Scenes.Stage<Scenes.SceneContext>([
+      //
+    ])
+
     telegraf.use(session())
     telegraf.use(stage.middleware())
-
     Tg.setupCommands(telegraf)
-    Tg.setupRouting(telegraf)
 
-    telegraf.on('message', async (context) => {
-      await context.reply(Tg.Dict.ON_MESSAGE)
+    telegraf.action(Tg.Routes.HOME.actionCode, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await context.reply(
+        Tg.Routes.HOME.actionName, //
+        Tg.Routes.HOME.keyboard,
+      )
     })
+
+    Tg.setupPlaces(telegraf)
+    Tg.setupFallbacks(telegraf)
 
     process.once('SIGINT', () => this.telegraf?.stop('SIGINT'))
     process.once('SIGTERM', () => this.telegraf?.stop('SIGTERM'))

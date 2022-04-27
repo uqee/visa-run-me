@@ -2,7 +2,7 @@ import { uid } from 'uid'
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
 import { epochFromDate } from '../utils'
-import { Cache, Person, Place } from './ydb-tables'
+import { Cache, Country, Person, Place } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
@@ -159,13 +159,16 @@ class Ydb {
 
   public async placesSelectByTgid(
     args: YdbArgs & Pick<Place, 'tgid'>, //
-  ): Promise<Place[]> {
+  ): Promise<Array<Place & { countryName: Country['name'] }>> {
     const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Place>(`
-        select * from places where tgid == '${tgid}' and deleted is null
-        order by name limit ${_limit} offset ${_offset}
+      await this._execute<Place & { countryName: Country['name'] }>(`
+        select p.*, c.name as countryName,
+        from places as p left join countries as c on p.countryId = c.id
+        where p.tgid == '${tgid}' and p.deleted is null
+        order by countryName, name
+        limit ${_limit} offset ${_offset}
       `)
     )[0]
   }
