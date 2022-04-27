@@ -6,7 +6,7 @@ import { MaybePromise } from 'telegraf/typings/composer.d'
 import { Context } from 'telegraf/typings/context.d'
 import { MiddlewareFn } from 'telegraf/typings/middleware.d'
 
-import { _Cache, ydb } from '../ydb'
+import { Cache, ydb } from '../ydb'
 
 export interface SessionStore<T> {
   get: (name: string) => MaybePromise<T | undefined>
@@ -65,14 +65,14 @@ export class YdbSessionStore<T> implements SessionStore<T> {
 
   // eslint-disable-next-line class-methods-use-this
   public async delete(key: string): Promise<void> {
-    await ydb._cachesDelete({ key })
+    await ydb.cachesDelete({ key })
   }
 
   // eslint-disable-next-line class-methods-use-this
   public async get(key: string): Promise<T | undefined> {
-    const _cache: _Cache | undefined = await ydb._cachesSelectByKey({ key })
-    if (!_cache || !_cache.value) return undefined
-    const { expires, session } = JSON.parse(_cache.value) as YdbSessionStoreValue<T>
+    const cache: Cache | undefined = await ydb.cachesSelectByKey({ key })
+    if (!cache || !cache.value) return undefined
+    const { expires, session } = JSON.parse(cache.value) as YdbSessionStoreValue<T>
 
     if (expires < Date.now()) {
       await this.delete(key)
@@ -84,7 +84,7 @@ export class YdbSessionStore<T> implements SessionStore<T> {
 
   // eslint-disable-next-line class-methods-use-this
   public async set(key: string, value: T): Promise<void> {
-    await ydb._cachesReplace({
+    await ydb.cachesReplace({
       key,
       value: JSON.stringify({
         expires: Date.now() + this.ttl,

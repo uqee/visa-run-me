@@ -1,11 +1,12 @@
 type Epoch = number // timestamp, precision 1 second
 type Id = string // uid, 11 chars
+type Tgid = string
 
 //
 // non-standard
 //
 
-export interface _Cache {
+export interface Cache {
   created: Epoch
   key: string
   value: string
@@ -19,7 +20,7 @@ interface Standard {
   created: Epoch
   deleted: Epoch
   id: Id
-  ownerId: Id
+  tgid: Tgid
 }
 
 //
@@ -63,8 +64,8 @@ export interface Person extends Standard {
   _feedbacksSum: number
   firstname: string
   lastname?: string
-  userid: string
-  username?: string
+  // tgid: Tgid
+  tgname?: string
 }
 
 //

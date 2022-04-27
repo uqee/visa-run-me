@@ -1,13 +1,20 @@
 import { uid } from 'uid'
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
-import { epochFromDate, RequiredKeys } from '../utils'
-import { _Cache, Person } from './ydb-tables'
+import { epochFromDate } from '../utils'
+import { Cache, Person, Place } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
+interface YdbArgs {
+  _limit?: number
+  _offset?: number
+}
+
 class Ydb {
-  private static sqlNullableToString(value: string | undefined): string {
+  private static readonly _limit: number = 3
+  private static readonly _offset: number = 0
+  private static str(value: string | undefined): string {
     return value ? `'${value}'` : 'null'
   }
 
@@ -15,106 +22,19 @@ class Ydb {
   private debug: boolean | undefined
   private sdk: Sdk | undefined
 
-  public async _cachesDelete(
-    _cache: RequiredKeys<Partial<_Cache>, 'key'>, //
-  ): Promise<void> {
-    const { key } = _cache
-    // prettier-ignore
-    await this.execute(`delete from _caches where key == '${key}'`)
-  }
-
-  public async _cachesReplace(
-    _cache: RequiredKeys<Partial<_Cache>, 'key' | 'value'>, //
-  ): Promise<void> {
-    const { key, value } = _cache
-    // prettier-ignore
-    await this.execute<_Cache>(`
-      replace into _caches (key, value, created)
-      values ('${key}', '${value}', ${epochFromDate()})
-    `)
-  }
-
-  public async _cachesSelectByKey(
-    _cache: RequiredKeys<Partial<_Cache>, 'key'>, //
-  ): Promise<_Cache | undefined> {
-    const { key } = _cache
-    // prettier-ignore
-    const response = await this.execute<_Cache>(`select * from _caches where key == '${key}'`)
-    if (this.debug) console.log('YDB : _cachesSelectByKey', JSON.stringify(response))
-    return response[0]?.[0]
-  }
-
-  private async execute<T>(query: string): Promise<SdkExecuteDataQueryReturnType<T>> {
+  private async _execute<T>(request: string): Promise<SdkExecuteDataQueryReturnType<T>> {
     try {
-      const result = await this.sdk!.executeDataQuery(query)
-      return result as SdkExecuteDataQueryReturnType<T>
+      if (this.debug) console.log('YDB : request', JSON.stringify(request))
+      const response = await this.sdk!.executeDataQuery(request)
+      if (this.debug) console.log('YDB : response', JSON.stringify(response))
+      return response as SdkExecuteDataQueryReturnType<T>
     } catch (error) {
-      if (this.debug) console.log(query, '\n', error)
+      if (this.debug) console.log('YDB : error', error)
       throw error
     }
   }
 
-  public async personsInsert(
-    person: RequiredKeys<Partial<Person>, 'firstname' | 'userid'>, //
-  ): Promise<void> {
-    const { firstname, lastname, userid, username } = person
-    const id: string = uid()
-    // prettier-ignore
-    await this.execute(`
-      insert into persons (
-        _feedbacksCount,
-        _feedbacksSum,
-        firstname,
-        lastname,
-        userid,
-        username,
-        created,
-        deleted,
-        id,
-        ownerId
-      ) values (
-        0,
-        0,
-        '${firstname}',
-        ${Ydb.sqlNullableToString(lastname)},
-        '${userid}',
-        ${Ydb.sqlNullableToString(username)},
-        ${epochFromDate()},
-        null,
-        '${id}',
-        '${id}'
-      )
-    `)
-  }
-
-  public async personsSelectByUserid(
-    person: RequiredKeys<Partial<Person>, 'userid'>, //
-  ): Promise<Person | undefined> {
-    const { userid } = person
-    // prettier-ignore
-    const response = await this.execute<Person>(`select * from persons where userid == '${userid}'`)
-    if (this.debug) console.log('YDB : personsSelectByUserid', JSON.stringify(response))
-    return response[0]?.[0]
-  }
-
-  public async personsUpdate(
-    person: RequiredKeys<Partial<Person>, 'firstname' | 'id'>, //
-  ): Promise<void> {
-    const { id, firstname, lastname, username } = person
-    // prettier-ignore
-    await this.execute(`
-      update
-        persons
-      set
-        firstname = '${firstname}',
-        lastname = ${Ydb.sqlNullableToString(lastname)},
-        username = ${Ydb.sqlNullableToString(username)}
-      where
-        id == '${id}'
-    `)
-  }
-
-  public setup(dbName: string, accessToken: string, debug: boolean): void {
+  public _setup(dbName: string, accessToken: string, debug: boolean): void {
     if (accessToken !== this.accessToken) {
       this.accessToken = accessToken
       this.sdk = undefined
@@ -123,6 +43,131 @@ class Ydb {
       this.sdk = new Sdk({ dbName, iamToken: this.accessToken })
     }
     this.debug = debug
+  }
+
+  //
+
+  public async cachesDelete(
+    args: YdbArgs & Pick<Cache, 'key'>, //
+  ): Promise<void> {
+    const { key } = args
+    // prettier-ignore
+    await this._execute(
+      `delete from caches where key == '${key}'`,
+    )
+  }
+
+  public async cachesReplace(
+    args: YdbArgs & Pick<Cache, 'key' | 'value'>, //
+  ): Promise<void> {
+    const { key, value } = args
+    // prettier-ignore
+    await this._execute(`
+      replace into caches (key, value, created)
+      values ('${key}', '${value}', ${epochFromDate()})
+    `)
+  }
+
+  public async cachesSelectByKey(
+    args: YdbArgs & Pick<Cache, 'key'>, //
+  ): Promise<Cache | undefined> {
+    const { key } = args
+    // prettier-ignore
+    return (
+      await this._execute<Cache>(
+        `select * from caches where key == '${key}'`,
+      )
+    )[0]?.[0]
+  }
+
+  //
+
+  public async countriesSelectByTgid(
+    args: YdbArgs & Pick<Place, 'tgid'>, //
+  ): Promise<Place[]> {
+    const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
+    // prettier-ignore
+    return (
+      await this._execute<Place>(`
+        select * from countries where tgid == '${tgid}' and deleted is null
+        order by name limit ${_limit} offset ${_offset}
+      `)
+    )[0]
+  }
+
+  //
+
+  public async personsInsert(
+    args: YdbArgs & Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
+  ): Promise<void> {
+    const { firstname, lastname, tgid, tgname } = args
+    const id: string = uid()
+    // prettier-ignore
+    await this._execute(`
+      insert into persons (
+        _feedbacksCount, _feedbacksSum, firstname, lastname, tgname,
+        created, deleted, id, tgid
+      ) values (
+        0, 0, '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
+        ${epochFromDate()}, null, '${id}', '${id}'
+      )
+    `)
+  }
+
+  public async personsSelectByTgid(
+    args: YdbArgs & Pick<Person, 'tgid'>, //
+  ): Promise<Person | undefined> {
+    const { tgid } = args
+    // prettier-ignore
+    return (
+      await this._execute<Person>(
+        `select * from persons where tgid == '${tgid}'`,
+      )
+    )[0]?.[0]
+  }
+
+  public async personsUpdate(
+    args: YdbArgs & Pick<Person, 'firstname' | 'id' | 'lastname' | 'tgname'>, //
+  ): Promise<void> {
+    const { id, firstname, lastname, tgname } = args
+    // prettier-ignore
+    await this._execute(`
+      update
+        persons
+      set
+        firstname = '${firstname}',
+        lastname = ${Ydb.str(lastname)},
+        tgname = ${Ydb.str(tgname)}
+      where
+        id == '${id}'
+    `)
+  }
+
+  //
+
+  public async placesDelete(
+    args: YdbArgs & Pick<Place, 'id'>, //
+  ): Promise<unknown> {
+    const { id } = args
+    // prettier-ignore
+    return (
+      await this._execute<Place>(
+        `update places set deleted = ${epochFromDate()} where id == '${id}'`,
+      )
+    )
+  }
+
+  public async placesSelectByTgid(
+    args: YdbArgs & Pick<Place, 'tgid'>, //
+  ): Promise<Place[]> {
+    const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
+    // prettier-ignore
+    return (
+      await this._execute<Place>(`
+        select * from places where tgid == '${tgid}' and deleted is null
+        order by name limit ${_limit} offset ${_offset}
+      `)
+    )[0]
   }
 }
 
