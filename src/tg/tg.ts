@@ -12,16 +12,16 @@ export interface TgContext extends Context {
 
 class Tg {
   private static readonly Dict = {
-    ON_MESSAGE: 'Пожалуйста, воспользуйтесь кнопками меню ↓',
+    ON_MESSAGE: 'Используйте кнопки на клавиатуре ↓',
     ROOT: 'Домой',
     ROOT_DRIVER: 'Водителям',
     ROOT_PASSENGER: 'Пассажирам',
   }
 
   private static readonly Keyboards = {
-    ROOT: Markup.keyboard([[Tg.Dict.ROOT_DRIVER, Tg.Dict.ROOT_PASSENGER]]),
-    ROOT_DRIVER: Markup.keyboard([[Tg.Dict.ROOT]]),
-    ROOT_PASSENGER: Markup.keyboard([[Tg.Dict.ROOT]]),
+    ROOT: Markup.keyboard([[Tg.Dict.ROOT_DRIVER, Tg.Dict.ROOT_PASSENGER]]).resize(),
+    ROOT_DRIVER: Markup.keyboard([[Tg.Dict.ROOT]]).resize(),
+    ROOT_PASSENGER: Markup.keyboard([[Tg.Dict.ROOT]]).resize(),
   }
 
   private static readonly Routes = {
