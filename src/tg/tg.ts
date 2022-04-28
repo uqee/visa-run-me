@@ -9,20 +9,14 @@ import { Composer, Context, Markup, Scenes, Telegraf } from 'telegraf'
 import { ydb } from '../ydb'
 import { session } from './session'
 
-// context.scene.session.my2cents
-interface TgWizardSession extends Scenes.WizardSessionData {
-  my2cents: number
-}
+// context.scene.session
+interface TgWizardSession extends Scenes.WizardSessionData {}
 
-// context.session.my2cents
-interface TgSession extends Scenes.WizardSession<TgWizardSession> {
-  my2cents: number
-}
+// context.session
+interface TgSession extends Scenes.WizardSession<TgWizardSession> {}
 
-// context.my2cents
+// context
 interface TgContext extends Context {
-  my2cents: number
-
   scene: Scenes.SceneContextScene<TgContext, TgWizardSession>
   session: TgSession
   wizard: Scenes.WizardContextWizard<TgContext>
@@ -37,31 +31,67 @@ interface TgRoute {
 
 class Tg {
   private static readonly $ymbols = {
-    ARROW_DOWN: '↓',
-    ARROW_LEFT: '←',
-    ARROW_RIGHT: '→',
-    ARROW_UP: '↑',
-    CHECKMARK: '✓',
-    DOT: '⋅',
-    HEART: '♥',
-    MINUS: '−',
-    MULT: '×',
-    PLUS: '+',
-    QUOTE_DOUBLE_LEFT: '«',
-    QUOTE_DOUBLE_RIGHT: '»',
-    QUOTE_LEFT: '‹',
-    QUOTE_RIGHT: '›',
+    x0_ARROW_DOWN: '↓',
+    x0_ARROW_LEFT: '←',
+    x0_ARROW_RIGHT: '→',
+    x0_ARROW_UP: '↑',
+    x0_CHECK: '✓',
+    x0_CIRCLE: '◯',
+    x0_CROSS: '╳',
+    x0_DOT: '⋅',
+    x0_MINUS: '−',
+    x0_MULT: '×',
+    x0_PLUS: '+',
+    x0_QUOTE_DOUBLE_LEFT: '«',
+    x0_QUOTE_DOUBLE_RIGHT: '»',
+    x0_QUOTE_LEFT: '‹',
+    x0_QUOTE_RIGHT: '›',
+    x1_EURO: '€',
+    x1_INFINITY: '∞',
+    x2_ARROWHEAD: '➤',
+    x2_BULLET: '•',
+    x2_CHEVRON_LEFT: '❮',
+    x2_CHEVRON_RIGHT: '❯',
+    x2_MINUS: '➖',
+    x2_MULT: '✖',
+    x2_PLUS: '➕',
+    x2_QUOTE_CLOSE: '❜',
+    x2_QUOTE_DOUBLE_CLOSE: '❞',
+    x2_QUOTE_DOUBLE_OPEN: '❝',
+    x2_QUOTE_OPEN: '❛',
+    x2_STAR: '★',
+    x2_TRIANGLE_DOWN: '▼',
+    x2_TRIANGLE_LEFT: '◀',
+    x2_TRIANGLE_RIGHT: '▶',
+    x2_TRIANGLE_UP: '▲',
+    x3_CHECK: '✅',
+    x3_CROSS: '❌',
+    x3_EXCLAMATION: '❗',
+    x3_HEART: '♥',
+    x3_HOURGLASS: '⏳',
+    x3_LIKE: '👍',
+    x3_QUESTION: '❓',
+    x3_WTF: '⁉',
   } as const
 
   private static readonly Constants = {
     R_ANY_ACTION: /.*/,
-    S_CREATE: `${Tg.$ymbols.PLUS} Добавить`,
-    S_DELETE: `${Tg.$ymbols.MINUS} Удалить`,
+    S_CREATE: `${Tg.$ymbols.x0_PLUS} Добавить`,
+    S_DELETE: `${Tg.$ymbols.x0_MINUS} Удалить`,
     S_FEEDBACK: 'Оставьте отзыв или предложение @denis_zhbankov',
-    S_GET: `${Tg.$ymbols.ARROW_DOWN} Загрузить`,
-    S_GET_MORE: `${Tg.$ymbols.ARROW_DOWN} Загрузить еще`,
-    S_GET_OK: `${Tg.$ymbols.CHECKMARK} Загружено`,
+    S_GET: `${Tg.$ymbols.x0_ARROW_DOWN} Загрузить`,
+    S_GET_MORE: `${Tg.$ymbols.x0_ARROW_DOWN} Загрузить еще`,
     S_HELP: 'Используйте кнопки под сообщениями',
+  } as const
+
+  private static readonly Helpers = {
+    getSceneState: <T extends object>(context: TgContext): T => context.scene.state as T,
+    replyRoute: async (context: TgContext, route: TgRoute): Promise<void> => {
+      await context.replyWithMarkdownV2(
+        Tg.Markdown.italic(route.actionName), //
+        route.keyboard,
+      )
+    },
   } as const
 
   private static readonly Markdown = {
@@ -82,7 +112,7 @@ class Tg {
 
     const HOME: TgRoute = {
       actionCode: 'HOME',
-      actionName: `${Tg.$ymbols.QUOTE_DOUBLE_RIGHT} Дом`,
+      actionName: `${Tg.$ymbols.x0_QUOTE_DOUBLE_RIGHT} Дом`,
       actionPattern: /^HOME$/,
     }
 
@@ -124,7 +154,7 @@ class Tg {
 
     const HOME_PLACES = (offset: number = 0): TgRoute => ({
       actionCode: 'HOME_PLACES',
-      actionName: `${HOME.actionName} ${Tg.$ymbols.QUOTE_RIGHT} Места`,
+      actionName: `${HOME.actionName} ${Tg.$ymbols.x0_QUOTE_RIGHT} Места`,
       actionPattern: /^HOME_PLACES$/,
       keyboard: Markup.inlineKeyboard([
         [
@@ -185,27 +215,18 @@ class Tg {
       if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, tgname })
       else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
 
-      await context.reply(`Dobro došli, ${firstname} ${Tg.$ymbols.HEART}`)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await context.reply(`Dobro došli, ${firstname} ${Tg.$ymbols.x3_HEART}`)
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
 
     telegraf.help(async (context) => {
       await context.reply(Tg.Constants.S_HELP)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
 
     telegraf.command('feedback', async (context) => {
       await context.reply(Tg.Constants.S_FEEDBACK)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
   }
 
@@ -215,18 +236,12 @@ class Tg {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
       await context.reply(Tg.Constants.S_HELP)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
 
     telegraf.on('message', async (context) => {
       await context.reply(Tg.Constants.S_HELP)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
   }
 
@@ -235,10 +250,7 @@ class Tg {
     telegraf.action(Tg.Routes.HOME.actionCode, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME.actionName), //
-        Tg.Routes.HOME.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
   }
 
@@ -247,10 +259,7 @@ class Tg {
     telegraf.action(Tg.Routes.HOME_PLACES_.actionCode, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(Tg.Routes.HOME_PLACES_.actionName), //
-        Tg.Routes.HOME_PLACES_.keyboard,
-      )
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES_)
     })
 
     telegraf.action(Tg.Routes.HOME_PLACES_CREATE.actionPattern, async (context) => {
@@ -287,45 +296,45 @@ class Tg {
           const { countryName, id, name } = place
           const { keyboard } = Tg.Routes.HOME_PLACES_DELETE(id)
           await context.replyWithMarkdownV2(
-            `${Tg.Markdown.bold(countryName)} ${Tg.$ymbols.DOT} ${name}`, //
+            `${Tg.Markdown.bold(countryName)} ${Tg.$ymbols.x0_DOT} ${name}`, //
             keyboard,
           )
         }
 
         if (places.length === _limit) {
-          const { actionName, keyboard } = Tg.Routes.HOME_PLACES(_offset + _limit)
-          await context.replyWithMarkdownV2(
-            Tg.Markdown.italic(actionName), //
-            keyboard,
-          )
+          await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES(_offset + _limit))
         }
 
         if (places.length < _limit) {
-          const { keyboard } = Tg.Routes.HOME_PLACES(Infinity)
-          await context.replyWithMarkdownV2(
-            Tg.Markdown.italic(Tg.Constants.S_GET_OK), //
-            keyboard,
-          )
+          await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES(Infinity))
         }
       }
     })
   }
 
   private static setupPlacesCreate(): Scenes.WizardScene<TgContext> {
+    interface TgSceneState {
+      my2cents: number
+    }
+
     //
 
     const composer = new Composer<TgContext>()
 
     composer.action('next', async (ctx) => {
-      ctx.scene.session.my2cents = Math.floor(10 * Math.random())
-      ctx.session.my2cents = -Math.floor(10 * Math.random())
+      const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
+      state.my2cents = 42
+      // ctx.scene.session.my2cents = Math.floor(10 * Math.random())
+      // ctx.session.my2cents = -Math.floor(10 * Math.random())
       await ctx.reply('Step 2. Via inline button')
       return ctx.wizard.next()
     })
 
     composer.command('next', async (ctx) => {
-      ctx.scene.session.my2cents = Math.floor(10 * Math.random()) + 10
-      ctx.session.my2cents = -Math.floor(10 * Math.random()) - 10
+      const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
+      state.my2cents = 42
+      // ctx.scene.session.my2cents = Math.floor(10 * Math.random()) + 10
+      // ctx.session.my2cents = -Math.floor(10 * Math.random()) - 10
       await ctx.reply('Step 2. Via command')
       return ctx.wizard.next()
     })
@@ -353,26 +362,21 @@ class Tg {
       composer,
 
       async (ctx) => {
+        const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
         const responseText = [
           'Step 3',
-          `ctx.my2cents is ${ctx.my2cents}`,
-          `ctx.session.my2cents is ${ctx.session.my2cents}`,
-          `ctx.scene.session.my2cents === ${ctx.scene.session.my2cents}`,
+          `ctx.scene.state.my2cents is ${state.my2cents}`,
+          // `ctx.session.my2cents is ${ctx.session.my2cents}`,
+          // `ctx.scene.session.my2cents === ${ctx.scene.session.my2cents}`,
         ].join('\n')
         await ctx.reply(responseText)
-        return ctx.wizard.next()
-      },
-
-      async (ctx) => {
-        await ctx.reply('Step 4')
-        return ctx.wizard.next()
-      },
-
-      async (ctx) => {
-        await ctx.reply('Done')
         return await ctx.scene.leave()
       },
     )
+
+    scene.leave(async (context) => {
+      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+    })
 
     return scene
   }
@@ -390,7 +394,6 @@ class Tg {
 
     telegraf.use(async (context, next) => {
       if (debug) console.log('TG : context', JSON.stringify(context))
-      context.my2cents = Date.now()
       return next()
     })
 
