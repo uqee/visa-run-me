@@ -6,14 +6,12 @@ import { Cache, Country, Person, Place } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
-interface YdbArgs {
-  _limit?: number
-  _offset?: number
+export interface YdbArgs {
+  _limit: number
+  _offset: number
 }
 
 class Ydb {
-  private static readonly _limit: number = 10
-  private static readonly _offset: number = 0
   private static str(value: string | undefined): string {
     return value ? `'${value}'` : 'null'
   }
@@ -48,7 +46,7 @@ class Ydb {
   //
 
   public async cachesDelete(
-    args: YdbArgs & Pick<Cache, 'key'>, //
+    args: Pick<Cache, 'key'>, //
   ): Promise<void> {
     const { key } = args
     // prettier-ignore
@@ -58,7 +56,7 @@ class Ydb {
   }
 
   public async cachesReplace(
-    args: YdbArgs & Pick<Cache, 'key' | 'value'>, //
+    args: Pick<Cache, 'key' | 'value'>, //
   ): Promise<void> {
     const { key, value } = args
     // prettier-ignore
@@ -69,7 +67,7 @@ class Ydb {
   }
 
   public async cachesSelectByKey(
-    args: YdbArgs & Pick<Cache, 'key'>, //
+    args: Pick<Cache, 'key'>, //
   ): Promise<Cache | undefined> {
     const { key } = args
     // prettier-ignore
@@ -85,7 +83,7 @@ class Ydb {
   public async countriesSelect(
     args: YdbArgs, //
   ): Promise<Country[]> {
-    const { _limit = Ydb._limit, _offset = Ydb._offset } = args
+    const { _limit, _offset } = args
     // prettier-ignore
     return (
       await this._execute<Country>(`
@@ -98,7 +96,7 @@ class Ydb {
   public async countriesSelectByTgid(
     args: YdbArgs & Pick<Place, 'tgid'>, //
   ): Promise<Country[]> {
-    const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
+    const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
       await this._execute<Country>(`
@@ -111,7 +109,7 @@ class Ydb {
   //
 
   public async personsInsert(
-    args: YdbArgs & Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
+    args: Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
   ): Promise<Person['id']> {
     const { firstname, lastname, tgid, tgname } = args
     const id: string = uid()
@@ -129,7 +127,7 @@ class Ydb {
   }
 
   public async personsSelectByTgid(
-    args: YdbArgs & Pick<Person, 'tgid'>, //
+    args: Pick<Person, 'tgid'>, //
   ): Promise<Person | undefined> {
     const { tgid } = args
     // prettier-ignore
@@ -141,7 +139,7 @@ class Ydb {
   }
 
   public async personsUpdate(
-    args: YdbArgs & Pick<Person, 'firstname' | 'id' | 'lastname' | 'tgname'>, //
+    args: Pick<Person, 'firstname' | 'id' | 'lastname' | 'tgname'>, //
   ): Promise<void> {
     const { id, firstname, lastname, tgname } = args
     // prettier-ignore
@@ -160,7 +158,7 @@ class Ydb {
   //
 
   public async placesDelete(
-    args: YdbArgs & Pick<Place, 'id'>, //
+    args: Pick<Place, 'id'>, //
   ): Promise<void> {
     const { id } = args
     // prettier-ignore
@@ -170,7 +168,7 @@ class Ydb {
   }
 
   public async placesInsert(
-    args: YdbArgs & Pick<Place, 'countryId' | 'name' | 'tgid'>, //
+    args: Pick<Place, 'countryId' | 'name' | 'tgid'>, //
   ): Promise<Place['id']> {
     const { countryId, name, tgid } = args
     const id: string = uid()
@@ -190,7 +188,7 @@ class Ydb {
   public async placesSelectByCountryId(
     args: YdbArgs & Pick<Place, 'countryId'>, //
   ): Promise<Place[]> {
-    const { _limit = Ydb._limit, _offset = Ydb._offset, countryId } = args
+    const { _limit, _offset, countryId } = args
     // prettier-ignore
     return (
       await this._execute<Place>(`
@@ -206,7 +204,7 @@ class Ydb {
   public async placesSelectByTgid(
     args: YdbArgs & Pick<Place, 'tgid'>, //
   ): Promise<Array<Place & { countryName: Country['name'] }>> {
-    const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
+    const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
       await this._execute<Place & { countryName: Country['name'] }>(`

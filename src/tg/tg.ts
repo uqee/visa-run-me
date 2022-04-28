@@ -3,34 +3,28 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
-import { InlineKeyboardMarkup, Update, User } from '@grammyjs/types'
-import { Composer, Context, Markup, Scenes, Telegraf } from 'telegraf'
+import { Update, User } from '@grammyjs/types'
+import { Context, Markup, Telegraf } from 'telegraf'
 
-import { Country, ydb } from '../ydb'
-import { session } from './session'
+import { AllOrNone } from '../utils'
+import { Place, ydb, YdbArgs } from '../ydb'
 
-// context.scene.session
-interface TgWizardSession extends Scenes.WizardSessionData {}
+type TgAction = {
+  buttonHidden?: boolean
+  buttonPayload: string
+  buttonText: string
+} & AllOrNone<{
+  replyButtons: Parameters<typeof Markup.inlineKeyboard>[0]
+  replyMessage: string
+}>
 
-// context.session
-interface TgSession extends Scenes.WizardSession<TgWizardSession> {}
-
-// context
-interface TgContext extends Context {
-  scene: Scenes.SceneContextScene<TgContext, TgWizardSession>
-  session: TgSession
-  wizard: Scenes.WizardContextWizard<TgContext>
-}
-
-interface TgRoute {
-  actionCode: string
-  actionName: string
-  actionPattern: RegExp
-  keyboard?: Markup.Markup<InlineKeyboardMarkup>
+interface TgActionFactory<TArgs extends object | void = void> {
+  (args: TArgs): TgAction
+  handlerPattern: RegExp
 }
 
 class Tg {
-  private static readonly $ymbols = {
+  private static readonly x0_Symbols = {
     x0_ARROW_DOWN: '↓',
     x0_ARROW_LEFT: '←',
     x0_ARROW_RIGHT: '→',
@@ -74,27 +68,29 @@ class Tg {
     x3_WTF: '⁉',
   } as const
 
-  private static readonly Constants = {
-    R_ANY_ACTION: /.*/,
-    S_CREATE: `${Tg.$ymbols.x0_PLUS} Добавить`,
-    S_DELETE: `${Tg.$ymbols.x0_MINUS} Удалить`,
-    S_FEEDBACK: 'Оставьте отзыв или предложение @denis_zhbankov',
-    S_GET: `${Tg.$ymbols.x0_ARROW_DOWN} Загрузить`,
-    S_GET_MORE: `${Tg.$ymbols.x0_ARROW_DOWN} Загрузить еще`,
-    S_HELP: 'Используйте кнопки под сообщениями',
-  } as const
+  private static readonly x1_Helpers = {
+    // eslint-disable-next-line id-blacklist
+    button: (action: TgAction): ReturnType<typeof Markup.button.callback> => {
+      return Markup.button.callback(action.buttonText, action.buttonPayload, action.buttonHidden)
+    },
 
-  private static readonly Helpers = {
-    getSceneState: <T extends object>(context: TgContext): T => context.scene.state as T,
-    replyRoute: async (context: TgContext, route: TgRoute): Promise<void> => {
-      await context.replyWithMarkdownV2(
-        Tg.Markdown.italic(route.actionName), //
-        route.keyboard,
-      )
+    keyboard: (
+      buttons: Parameters<typeof Markup.inlineKeyboard>[0],
+    ): ReturnType<typeof Markup.inlineKeyboard> => {
+      return Markup.inlineKeyboard(buttons)
+    },
+
+    reply: async (context: Context, action: TgAction): Promise<void> => {
+      if (action.replyButtons) {
+        await context.replyWithMarkdownV2(
+          Tg.x1_Markdown.italic(action.replyMessage),
+          Markup.inlineKeyboard(action.replyButtons),
+        )
+      }
     },
   } as const
 
-  private static readonly Markdown = {
+  private static readonly x1_Markdown = {
     bold: (s: string): string => `*${s}*`,
     code: (s: string): string => `\`\`\`${s}\`\`\``,
     italic: (s: string): string => `_${s}_`,
@@ -106,107 +102,93 @@ class Tg {
     underline: (s: string): string => `__${s}__`,
   } as const
 
+  private static readonly x1_Strings = {
+    CREATE: `${Tg.x0_Symbols.x0_PLUS} Добавить`,
+    DELETE: `${Tg.x0_Symbols.x0_MINUS} Удалить`,
+    GET: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить`,
+    GET_MORE: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить еще`,
+  } as const
+
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  private static readonly Routes = (() => {
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-    const HOME: TgRoute = {
-      actionCode: 'HOME',
-      actionName: `${Tg.$ymbols.x0_QUOTE_DOUBLE_RIGHT} Дом`,
-      actionPattern: /^HOME$/,
-    }
-
-    //
-
-    const HOME_PLACES_CREATE: TgRoute = {
-      actionCode: 'HOME_PLACES_CREATE',
-      actionName: Tg.Constants.S_CREATE,
-      actionPattern: /^HOME_PLACES_CREATE$/,
-    }
-
-    //
-
-    const HOME_PLACES_DELETE = (id: string = ''): TgRoute => ({
-      actionCode: `HOME_PLACES_DELETE:${id}`,
-      actionName: Tg.Constants.S_DELETE,
-      actionPattern: /^HOME_PLACES_DELETE:(\w+)$/,
-      keyboard: Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            Tg.Constants.S_DELETE, //
-            `HOME_PLACES_DELETE:${id}`,
-          ),
-        ],
-      ]),
+  private static readonly x2_Actions = (() => {
+    const _indexButtonPattern: RegExp = /^index$/
+    const _indexButtonPayload: string = 'index'
+    const _indexButtonText: string = `${Tg.x0_Symbols.x0_QUOTE_DOUBLE_RIGHT} Дом`
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const _indexButton = Tg.x1_Helpers.button({
+      buttonPayload: _indexButtonPayload,
+      buttonText: _indexButtonText,
     })
-    const HOME_PLACES_DELETE_ = HOME_PLACES_DELETE()
 
     //
+    // places
+    //
 
-    const HOME_PLACES_GET = (offset: number = 0): TgRoute => ({
-      actionCode: `HOME_PLACES_GET:${offset}`,
-      actionName: offset === 0 ? Tg.Constants.S_GET : Tg.Constants.S_GET_MORE,
-      actionPattern: /^HOME_PLACES_GET:(\d+)$/,
+    const placesCreateStep0: TgActionFactory = () => ({
+      buttonPayload: 'places:create:step=0',
+      buttonText: Tg.x1_Strings.CREATE,
     })
-    const HOME_PLACES_GET_ = HOME_PLACES_GET()
+    placesCreateStep0.handlerPattern = /^places:create:step=0$/
 
     //
 
-    const HOME_PLACES = (offset: number = 0): TgRoute => ({
-      actionCode: 'HOME_PLACES',
-      actionName: `${HOME.actionName} ${Tg.$ymbols.x0_QUOTE_RIGHT} Места`,
-      actionPattern: /^HOME_PLACES$/,
-      keyboard: Markup.inlineKeyboard([
-        [
-          Markup.button.callback(
-            HOME_PLACES_CREATE.actionName, //
-            HOME_PLACES_CREATE.actionCode,
-          ),
-          Markup.button.callback(
-            HOME_PLACES_GET(offset).actionName,
-            HOME_PLACES_GET(offset).actionCode,
-            offset === Infinity,
-          ),
-        ],
-        [
-          Markup.button.callback(
-            HOME.actionName, //
-            HOME.actionCode,
-          ),
-        ],
-      ]),
+    const placesDelete: TgActionFactory<Pick<Place, 'id'>> = ($) => ({
+      buttonPayload: `places:delete:id=${$.id}`,
+      buttonText: Tg.x1_Strings.DELETE,
     })
-    const HOME_PLACES_ = HOME_PLACES()
+    placesDelete.handlerPattern = /^places:delete:id=(\w+)$/
 
     //
 
-    HOME.keyboard = Markup.inlineKeyboard([
-      [
-        Markup.button.callback(
-          HOME_PLACES_.actionName, //
-          HOME_PLACES_.actionCode,
-        ),
+    const placesGet: TgActionFactory<Pick<YdbArgs, '_offset'>> = ($) => ({
+      buttonHidden: $._offset === Infinity,
+      buttonPayload: `places:get:_offset=${$._offset}`,
+      buttonText: $._offset === 0 ? Tg.x1_Strings.GET : Tg.x1_Strings.GET_MORE,
+    })
+    placesGet.handlerPattern = /^places:get:_offset=(\d+)$/
+
+    //
+
+    const places: TgActionFactory<Pick<YdbArgs, '_offset'>> = ($) => ({
+      buttonPayload: 'places',
+      buttonText: `${_indexButtonText} ${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
+      replyButtons: [
+        [Tg.x1_Helpers.button(placesCreateStep0()), Tg.x1_Helpers.button(placesGet($))],
+        [_indexButton],
       ],
-    ])
+      replyMessage: `${_indexButtonText} ${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
+    })
+    places.handlerPattern = /^places$/
 
+    //
+    // index
+    //
+
+    const index: TgActionFactory = () => ({
+      buttonPayload: _indexButtonPayload,
+      buttonText: _indexButtonText,
+      replyButtons: [[Tg.x1_Helpers.button(places({ _offset: 0 }))]],
+      replyMessage: _indexButtonText,
+    })
+    index.handlerPattern = _indexButtonPattern
+
+    //
+    //
     //
 
     return {
-      HOME, //
-      HOME_PLACES,
-      HOME_PLACES_,
-      HOME_PLACES_CREATE,
-      HOME_PLACES_DELETE,
-      HOME_PLACES_DELETE_,
-      HOME_PLACES_GET,
-      HOME_PLACES_GET_,
+      index,
+      places,
+      placesCreateStep0,
+      placesDelete,
+      placesGet,
     } as const
-
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   })()
 
-  private static setupCommands(telegraf: Telegraf<TgContext>): void {
-    //
+  private static setupIndex(telegraf: Telegraf): void {
+    const actionIndex: TgAction = Tg.x2_Actions.index()
+    const messageHelp: string = 'Используйте кнопки под сообщениями'
+
     telegraf.start(async (context) => {
       const tgid: string = `${context.from.id}`
       const { first_name: firstname, last_name: lastname, username: tgname } = context.message.from
@@ -215,60 +197,59 @@ class Tg {
       if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, tgname })
       else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
 
-      await context.reply(`Dobro došli, ${firstname} ${Tg.$ymbols.x3_HEART}`)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await context.reply(`Dobro došli, ${firstname} ${Tg.x0_Symbols.x3_HEART}`)
+      await Tg.x1_Helpers.reply(context, actionIndex)
     })
 
     telegraf.help(async (context) => {
-      await context.reply(Tg.Constants.S_HELP)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await context.reply(messageHelp)
+      await Tg.x1_Helpers.reply(context, actionIndex)
     })
 
     telegraf.command('feedback', async (context) => {
-      await context.reply(Tg.Constants.S_FEEDBACK)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await context.reply('Оставьте отзыв или предложение @denis_zhbankov')
+      await Tg.x1_Helpers.reply(context, actionIndex)
     })
-  }
 
-  private static setupFallbacks(telegraf: Telegraf<TgContext>): void {
     //
-    telegraf.action(Tg.Constants.R_ANY_ACTION, async (context) => {
+
+    telegraf.action(Tg.x2_Actions.index.handlerPattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await context.reply(Tg.Constants.S_HELP)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await Tg.x1_Helpers.reply(context, actionIndex)
+    })
+
+    //
+
+    telegraf.action(/.*/, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await context.reply(messageHelp)
+      await Tg.x1_Helpers.reply(context, actionIndex)
     })
 
     telegraf.on('message', async (context) => {
-      await context.reply(Tg.Constants.S_HELP)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await context.reply(messageHelp)
+      await Tg.x1_Helpers.reply(context, actionIndex)
     })
   }
 
-  private static setupHome(telegraf: Telegraf<TgContext>): void {
+  private static setupPlaces(telegraf: Telegraf): void {
     //
-    telegraf.action(Tg.Routes.HOME.actionCode, async (context) => {
+    telegraf.action(Tg.x2_Actions.places.handlerPattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
     })
-  }
 
-  private static setupPlaces(telegraf: Telegraf<TgContext>): void {
-    //
-    telegraf.action(Tg.Routes.HOME_PLACES_.actionCode, async (context) => {
+    telegraf.action(Tg.x2_Actions.placesCreateStep0.handlerPattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES_)
+      await context.reply('IN PROGRESS')
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
     })
 
-    telegraf.action(Tg.Routes.HOME_PLACES_CREATE.actionPattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
-      await context.scene.enter(Tg.Routes.HOME_PLACES_CREATE.actionCode)
-    })
-
-    telegraf.action(Tg.Routes.HOME_PLACES_DELETE_.actionPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.placesDelete.handlerPattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
@@ -280,7 +261,7 @@ class Tg {
       }
     })
 
-    telegraf.action(Tg.Routes.HOME_PLACES_GET_.actionPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.placesGet.handlerPattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
@@ -294,103 +275,25 @@ class Tg {
 
         for (const place of places) {
           const { countryName, id, name } = place
-          const { keyboard } = Tg.Routes.HOME_PLACES_DELETE(id)
           await context.replyWithMarkdownV2(
-            `${Tg.Markdown.bold(countryName)} ${Tg.$ymbols.x0_DOT} ${name}`, //
-            keyboard,
+            `${Tg.x1_Markdown.bold(countryName)} ${Tg.x0_Symbols.x0_DOT} ${name}`,
+            Tg.x1_Helpers.keyboard([[Tg.x1_Helpers.button(Tg.x2_Actions.placesDelete({ id }))]]),
           )
         }
 
         if (places.length === _limit) {
-          await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES(_offset + _limit))
+          await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: _offset + _limit }))
         }
 
         if (places.length < _limit) {
-          await Tg.Helpers.replyRoute(context, Tg.Routes.HOME_PLACES(Infinity))
+          await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: Infinity }))
         }
       }
     })
   }
 
-  private static setupPlacesCreate(): Scenes.WizardScene<TgContext> {
-    interface TgSceneState {
-      countryId: Country['id']
-    }
-
-    const scene = new Scenes.WizardScene<TgContext>(
-      Tg.Routes.HOME_PLACES_CREATE.actionCode,
-
-      async (context) => {
-        const countries = await ydb.countriesSelect({ _limit: 10, _offset: 0 })
-        const response = await ydb.placesInsert({
-          countryId: countries[0].id,
-          name: 'Los Santos',
-          tgid: `${context.from?.id || 'Anon'}`,
-        })
-        await context.reply(
-          `Step 1\n${JSON.stringify(countries)}\n${JSON.stringify(response)}`,
-          Markup.inlineKeyboard([
-            Markup.button.url('❤️', 'http://telegraf.js.org'),
-            Markup.button.callback('➡️ Next', 'next'),
-          ]),
-        )
-        return context.wizard.next()
-      },
-
-      ((): Composer<TgContext> => {
-        const composer = new Composer<TgContext>()
-
-        composer.action('next', async (ctx) => {
-          const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
-          state.countryId = '42'
-          // ctx.scene.session.my2cents = Math.floor(10 * Math.random())
-          // ctx.session.my2cents = -Math.floor(10 * Math.random())
-          await ctx.reply('Step 2. Via inline button')
-          return ctx.wizard.next()
-        })
-
-        composer.command('next', async (ctx) => {
-          const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
-          state.my2cents = 42
-          // ctx.scene.session.my2cents = Math.floor(10 * Math.random()) + 10
-          // ctx.session.my2cents = -Math.floor(10 * Math.random()) - 10
-          await ctx.reply('Step 2. Via command')
-          return ctx.wizard.next()
-        })
-
-        composer.use(async (ctx) => {
-          await ctx.replyWithMarkdown('Press `Next` button or type /next')
-        })
-
-        return composer
-      })(),
-
-      async (ctx) => {
-        const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
-        const responseText = [
-          'Step 3',
-          `ctx.scene.state.countryId is ${state.countryId}`,
-          // `ctx.session.my2cents is ${ctx.session.my2cents}`,
-          // `ctx.scene.session.my2cents === ${ctx.scene.session.my2cents}`,
-        ].join('\n')
-        await ctx.reply(responseText)
-        return await ctx.scene.leave()
-      },
-    )
-
-    scene.command('start', async (context) => {
-      await context.scene.leave()
-    })
-
-    scene.leave(async (context) => {
-      await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
-    })
-
-    return scene
-  }
-
   private debug: boolean | undefined
-  private telegraf: Telegraf<TgContext> | undefined
+  private telegraf: Telegraf | undefined
 
   public async _execute(update: Update): Promise<void> {
     if (this.debug) console.log('TG : update', JSON.stringify(update))
@@ -398,24 +301,15 @@ class Tg {
   }
 
   public _setup(tgBotToken: string, debug: boolean): void {
-    const telegraf: Telegraf<TgContext> = new Telegraf<TgContext>(tgBotToken)
+    const telegraf: Telegraf = new Telegraf(tgBotToken)
 
     telegraf.use(async (context, next) => {
       if (debug) console.log('TG : context', JSON.stringify(context))
       return next()
     })
 
-    const stage = new Scenes.Stage<TgContext>([
-      Tg.setupPlacesCreate(), //
-    ])
-
-    telegraf.use(session())
-    telegraf.use(stage.middleware())
-
-    Tg.setupCommands(telegraf)
-    Tg.setupHome(telegraf)
     Tg.setupPlaces(telegraf)
-    Tg.setupFallbacks(telegraf)
+    Tg.setupIndex(telegraf)
 
     telegraf.catch((error) => {
       if (debug) console.log('TG : error', JSON.stringify(error))
