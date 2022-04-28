@@ -380,6 +380,10 @@ class Tg {
       },
     )
 
+    scene.command('start', async (context) => {
+      await context.scene.leave()
+    })
+
     scene.leave(async (context) => {
       await Tg.Helpers.replyRoute(context, Tg.Routes.HOME)
     })
