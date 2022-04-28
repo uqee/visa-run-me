@@ -12,7 +12,7 @@ interface YdbArgs {
 }
 
 class Ydb {
-  private static readonly _limit: number = 3
+  private static readonly _limit: number = 10
   private static readonly _offset: number = 0
   private static str(value: string | undefined): string {
     return value ? `'${value}'` : 'null'
@@ -82,13 +82,26 @@ class Ydb {
 
   //
 
+  public async countriesSelect(
+    args: YdbArgs, //
+  ): Promise<Country[]> {
+    const { _limit = Ydb._limit, _offset = Ydb._offset } = args
+    // prettier-ignore
+    return (
+      await this._execute<Country>(`
+        select * from countries where deleted is null
+        order by name limit ${_limit} offset ${_offset}
+      `)
+    )[0]
+  }
+
   public async countriesSelectByTgid(
     args: YdbArgs & Pick<Place, 'tgid'>, //
-  ): Promise<Place[]> {
+  ): Promise<Country[]> {
     const { _limit = Ydb._limit, _offset = Ydb._offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Place>(`
+      await this._execute<Country>(`
         select * from countries where tgid == '${tgid}' and deleted is null
         order by name limit ${_limit} offset ${_offset}
       `)
@@ -99,7 +112,7 @@ class Ydb {
 
   public async personsInsert(
     args: YdbArgs & Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
-  ): Promise<void> {
+  ): Promise<Person['id']> {
     const { firstname, lastname, tgid, tgname } = args
     const id: string = uid()
     // prettier-ignore
@@ -112,6 +125,7 @@ class Ydb {
         ${epochFromDate()}, null, '${id}', '${id}'
       )
     `)
+    return id
   }
 
   public async personsSelectByTgid(
@@ -147,14 +161,46 @@ class Ydb {
 
   public async placesDelete(
     args: YdbArgs & Pick<Place, 'id'>, //
-  ): Promise<unknown> {
+  ): Promise<void> {
     const { id } = args
     // prettier-ignore
-    return (
-      await this._execute<Place>(
-        `update places set deleted = ${epochFromDate()} where id == '${id}'`,
-      )
+    await this._execute(
+      `update places set deleted = ${epochFromDate()} where id == '${id}'`,
     )
+  }
+
+  public async placesInsert(
+    args: YdbArgs & Pick<Place, 'countryId' | 'name' | 'tgid'>, //
+  ): Promise<Place['id']> {
+    const { countryId, name, tgid } = args
+    const id: string = uid()
+    // prettier-ignore
+    await this._execute(`
+      insert into places (
+        countryId, name,
+        created, deleted, id, tgid
+      ) values (
+        '${countryId}', '${name}',
+        ${epochFromDate()}, null, '${id}', '${tgid}'
+      )
+    `)
+    return id
+  }
+
+  public async placesSelectByCountryId(
+    args: YdbArgs & Pick<Place, 'countryId'>, //
+  ): Promise<Place[]> {
+    const { _limit = Ydb._limit, _offset = Ydb._offset, countryId } = args
+    // prettier-ignore
+    return (
+      await this._execute<Place>(`
+        select *
+        from places
+        where countryId == '${countryId}' and deleted is null
+        order by name
+        limit ${_limit} offset ${_offset}
+      `)
+    )[0]
   }
 
   public async placesSelectByTgid(

@@ -349,8 +349,14 @@ class Tg {
       Tg.Routes.HOME_PLACES_CREATE.actionCode,
 
       async (ctx) => {
+        const countries = await ydb.countriesSelect({ _limit: 10, _offset: 0 })
+        const response = await ydb.placesInsert({
+          countryId: countries[0].id,
+          name: 'Los Santos',
+          tgid: `${ctx.from?.id || 'Anon'}`,
+        })
         await ctx.reply(
-          'Step 1',
+          `Step 1\n${JSON.stringify(countries)}\n${JSON.stringify(response)}`,
           Markup.inlineKeyboard([
             Markup.button.url('❤️', 'http://telegraf.js.org'),
             Markup.button.callback('➡️ Next', 'next'),
@@ -408,6 +414,11 @@ class Tg {
     Tg.setupHome(telegraf)
     Tg.setupPlaces(telegraf)
     Tg.setupFallbacks(telegraf)
+
+    telegraf.catch((error) => {
+      if (debug) console.log('TG : error', JSON.stringify(error))
+      throw error
+    })
 
     process.once('SIGINT', () => this.telegraf?.stop('SIGINT'))
     process.once('SIGTERM', () => this.telegraf?.stop('SIGTERM'))
