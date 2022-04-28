@@ -6,7 +6,7 @@
 import { InlineKeyboardMarkup, Update, User } from '@grammyjs/types'
 import { Composer, Context, Markup, Scenes, Telegraf } from 'telegraf'
 
-import { ydb } from '../ydb'
+import { Country, ydb } from '../ydb'
 import { session } from './session'
 
 // context.scene.session
@@ -314,64 +314,62 @@ class Tg {
 
   private static setupPlacesCreate(): Scenes.WizardScene<TgContext> {
     interface TgSceneState {
-      my2cents: number
+      countryId: Country['id']
     }
-
-    //
-
-    const composer = new Composer<TgContext>()
-
-    composer.action('next', async (ctx) => {
-      const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
-      state.my2cents = 42
-      // ctx.scene.session.my2cents = Math.floor(10 * Math.random())
-      // ctx.session.my2cents = -Math.floor(10 * Math.random())
-      await ctx.reply('Step 2. Via inline button')
-      return ctx.wizard.next()
-    })
-
-    composer.command('next', async (ctx) => {
-      const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
-      state.my2cents = 42
-      // ctx.scene.session.my2cents = Math.floor(10 * Math.random()) + 10
-      // ctx.session.my2cents = -Math.floor(10 * Math.random()) - 10
-      await ctx.reply('Step 2. Via command')
-      return ctx.wizard.next()
-    })
-
-    composer.use(async (ctx) => {
-      await ctx.replyWithMarkdown('Press `Next` button or type /next')
-    })
-
-    //
 
     const scene = new Scenes.WizardScene<TgContext>(
       Tg.Routes.HOME_PLACES_CREATE.actionCode,
 
-      async (ctx) => {
+      async (context) => {
         const countries = await ydb.countriesSelect({ _limit: 10, _offset: 0 })
         const response = await ydb.placesInsert({
           countryId: countries[0].id,
           name: 'Los Santos',
-          tgid: `${ctx.from?.id || 'Anon'}`,
+          tgid: `${context.from?.id || 'Anon'}`,
         })
-        await ctx.reply(
+        await context.reply(
           `Step 1\n${JSON.stringify(countries)}\n${JSON.stringify(response)}`,
           Markup.inlineKeyboard([
             Markup.button.url('❤️', 'http://telegraf.js.org'),
             Markup.button.callback('➡️ Next', 'next'),
           ]),
         )
-        return ctx.wizard.next()
+        return context.wizard.next()
       },
 
-      composer,
+      ((): Composer<TgContext> => {
+        const composer = new Composer<TgContext>()
+
+        composer.action('next', async (ctx) => {
+          const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
+          state.countryId = '42'
+          // ctx.scene.session.my2cents = Math.floor(10 * Math.random())
+          // ctx.session.my2cents = -Math.floor(10 * Math.random())
+          await ctx.reply('Step 2. Via inline button')
+          return ctx.wizard.next()
+        })
+
+        composer.command('next', async (ctx) => {
+          const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
+          state.my2cents = 42
+          // ctx.scene.session.my2cents = Math.floor(10 * Math.random()) + 10
+          // ctx.session.my2cents = -Math.floor(10 * Math.random()) - 10
+          await ctx.reply('Step 2. Via command')
+          return ctx.wizard.next()
+        })
+
+        composer.use(async (ctx) => {
+          await ctx.replyWithMarkdown('Press `Next` button or type /next')
+        })
+
+        return composer
+      })(),
 
       async (ctx) => {
         const state = Tg.Helpers.getSceneState<TgSceneState>(ctx)
         const responseText = [
           'Step 3',
-          `ctx.scene.state.my2cents is ${state.my2cents}`,
+          `ctx.scene.state.countryId is ${state.countryId}`,
           // `ctx.session.my2cents is ${ctx.session.my2cents}`,
           // `ctx.scene.session.my2cents === ${ctx.scene.session.my2cents}`,
         ].join('\n')
