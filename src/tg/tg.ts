@@ -1,26 +1,32 @@
 // https://github.com/telegraf/telegraf/blob/v4/docs/examples/wizards/wizard-bot-custom-context-and-session-and-scene-session.ts
 
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
 import { Update, User } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { AllOrNone } from '../utils'
-import { Place, ydb, YdbArgs } from '../ydb'
+import { Country, Place, ydb, YdbArgs } from '../ydb'
 
-type TgAction = {
-  buttonHidden?: boolean
-  buttonPayload: string
-  buttonText: string
-} & AllOrNone<{
-  replyButtons: Parameters<typeof Markup.inlineKeyboard>[0]
-  replyMessage: string
-}>
+interface TgAction {
+  button: {
+    hidden?: boolean
+    payload: string
+    text: string
+  }
+  reply?: {
+    buttons: Parameters<typeof Markup.inlineKeyboard>[0]
+    message: string
+  }
+}
 
 interface TgActionFactory<TArgs extends object | void = void> {
   (args: TArgs): TgAction
-  handlerPattern: RegExp
+  handler: {
+    parse: (contextMatch: string[]) => TArgs
+    pattern: RegExp
+  }
 }
 
 class Tg {
@@ -71,7 +77,7 @@ class Tg {
   private static readonly x1_Helpers = {
     // eslint-disable-next-line id-blacklist
     button: (action: TgAction): ReturnType<typeof Markup.button.callback> => {
-      return Markup.button.callback(action.buttonText, action.buttonPayload, action.buttonHidden)
+      return Markup.button.callback(action.button.text, action.button.payload, action.button.hidden)
     },
 
     keyboard: (
@@ -81,10 +87,10 @@ class Tg {
     },
 
     reply: async (context: Context, action: TgAction): Promise<void> => {
-      if (action.replyButtons) {
+      if (action.reply) {
         await context.replyWithMarkdownV2(
-          Tg.x1_Markdown.italic(action.replyMessage),
-          Markup.inlineKeyboard(action.replyButtons),
+          Tg.x1_Markdown.italic(action.reply.message),
+          Markup.inlineKeyboard(action.reply.buttons),
         )
       }
     },
@@ -103,21 +109,23 @@ class Tg {
   } as const
 
   private static readonly x1_Strings = {
+    CHOOSE: `${Tg.x0_Symbols.x0_CHECK} Выбрать`,
     CREATE: `${Tg.x0_Symbols.x0_PLUS} Добавить`,
     DELETE: `${Tg.x0_Symbols.x0_MINUS} Удалить`,
     GET: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить`,
     GET_MORE: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить еще`,
   } as const
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   private static readonly x2_Actions = (() => {
     const _indexButtonPattern: RegExp = /^index$/
     const _indexButtonPayload: string = 'index'
     const _indexButtonText: string = `${Tg.x0_Symbols.x0_QUOTE_DOUBLE_RIGHT} Дом`
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const _indexButton = Tg.x1_Helpers.button({
-      buttonPayload: _indexButtonPayload,
-      buttonText: _indexButtonText,
+      button: {
+        payload: _indexButtonPayload,
+        text: _indexButtonText,
+      },
     })
 
     //
@@ -125,52 +133,100 @@ class Tg {
     //
 
     const placesCreateStep0: TgActionFactory = () => ({
-      buttonPayload: 'places:create:step=0',
-      buttonText: Tg.x1_Strings.CREATE,
+      button: {
+        payload: 'places:create:step=0',
+        text: Tg.x1_Strings.CREATE,
+      },
     })
-    placesCreateStep0.handlerPattern = /^places:create:step=0$/
+
+    placesCreateStep0.handler = {
+      parse: () => undefined,
+      pattern: /^places:create:step=0$/,
+    }
+
+    //
+
+    const placesCreateStep1: TgActionFactory<Pick<Country, 'id'>> = ($) => ({
+      button: {
+        payload: `places:create:step=1:id=${$.id}`,
+        text: Tg.x1_Strings.CHOOSE,
+      },
+    })
+
+    placesCreateStep1.handler = {
+      parse: ([_, id]) => ({ id }),
+      pattern: /^places:create:step=1:id=(\w+)$/,
+    }
 
     //
 
     const placesDelete: TgActionFactory<Pick<Place, 'id'>> = ($) => ({
-      buttonPayload: `places:delete:id=${$.id}`,
-      buttonText: Tg.x1_Strings.DELETE,
+      button: {
+        payload: `places:delete:id=${$.id}`,
+        text: Tg.x1_Strings.DELETE,
+      },
     })
-    placesDelete.handlerPattern = /^places:delete:id=(\w+)$/
+
+    placesDelete.handler = {
+      parse: ([_, id]) => ({ id }),
+      pattern: /^places:delete:id=(\w+)$/,
+    }
 
     //
 
     const placesGet: TgActionFactory<Pick<YdbArgs, '_offset'>> = ($) => ({
-      buttonHidden: $._offset === Infinity,
-      buttonPayload: `places:get:_offset=${$._offset}`,
-      buttonText: $._offset === 0 ? Tg.x1_Strings.GET : Tg.x1_Strings.GET_MORE,
+      button: {
+        hidden: $._offset === Infinity,
+        payload: `places:get:_offset=${$._offset}`,
+        text: $._offset === 0 ? Tg.x1_Strings.GET : Tg.x1_Strings.GET_MORE,
+      },
     })
-    placesGet.handlerPattern = /^places:get:_offset=(\d+)$/
+
+    placesGet.handler = {
+      parse: ([_, _offset]) => ({ _offset: +_offset }),
+      pattern: /^places:get:_offset=(\d+)$/,
+    }
 
     //
 
     const places: TgActionFactory<Pick<YdbArgs, '_offset'>> = ($) => ({
-      buttonPayload: 'places',
-      buttonText: `${_indexButtonText} ${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
-      replyButtons: [
-        [Tg.x1_Helpers.button(placesCreateStep0()), Tg.x1_Helpers.button(placesGet($))],
-        [_indexButton],
-      ],
-      replyMessage: `${_indexButtonText} ${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
+      button: {
+        payload: `places:_offset=${$._offset}`,
+        text: `${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
+      },
+      reply: {
+        buttons: [
+          [Tg.x1_Helpers.button(placesCreateStep0()), Tg.x1_Helpers.button(placesGet($))],
+          [_indexButton],
+        ],
+        message: `${Tg.x0_Symbols.x0_QUOTE_RIGHT} Места`,
+      },
     })
-    places.handlerPattern = /^places$/
+
+    places.handler = {
+      parse: ([_, _offset]) => ({ _offset: +_offset }),
+      pattern: /^places:_offset=(\d+)$/,
+    }
 
     //
     // index
     //
 
     const index: TgActionFactory = () => ({
-      buttonPayload: _indexButtonPayload,
-      buttonText: _indexButtonText,
-      replyButtons: [[Tg.x1_Helpers.button(places({ _offset: 0 }))]],
-      replyMessage: _indexButtonText,
+      button: {
+        payload: _indexButtonPayload,
+        text: _indexButtonText,
+      },
+      reply: {
+        buttons: [[Tg.x1_Helpers.button(places({ _offset: 0 }))]],
+        message: _indexButtonText,
+      },
     })
-    index.handlerPattern = _indexButtonPattern
+
+    index.handler = {
+      parse: () => undefined,
+      pattern: _indexButtonPattern,
+    }
 
     //
     //
@@ -180,6 +236,7 @@ class Tg {
       index,
       places,
       placesCreateStep0,
+      placesCreateStep1,
       placesDelete,
       placesGet,
     } as const
@@ -213,7 +270,7 @@ class Tg {
 
     //
 
-    telegraf.action(Tg.x2_Actions.index.handlerPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.index.handler.pattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
       await Tg.x1_Helpers.reply(context, actionIndex)
@@ -236,32 +293,46 @@ class Tg {
 
   private static setupPlaces(telegraf: Telegraf): void {
     //
-    telegraf.action(Tg.x2_Actions.places.handlerPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.places.handler.pattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
       await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
     })
 
-    telegraf.action(Tg.x2_Actions.placesCreateStep0.handlerPattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
-      await context.reply('IN PROGRESS')
-      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
-    })
-
-    telegraf.action(Tg.x2_Actions.placesDelete.handlerPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.placesCreateStep0.handler.pattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
-      const id: string = context.match[1]
-      const user: User | undefined = context.from
-      if (user) {
-        await ydb.placesDelete({ id })
-        await context.deleteMessage()
+      const countries: Country[] = await ydb.countriesSelect({ _limit: 10, _offset: 0 })
+      for (const country of countries) {
+        const { id, name } = country
+        await context.replyWithMarkdownV2(
+          name,
+          Tg.x1_Helpers.keyboard([[Tg.x1_Helpers.button(Tg.x2_Actions.placesCreateStep1({ id }))]]),
+        )
       }
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
     })
 
-    telegraf.action(Tg.x2_Actions.placesGet.handlerPattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.placesCreateStep1.handler.pattern, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+
+      const { id } = Tg.x2_Actions.placesCreateStep1.handler.parse(context.match)
+      await context.reply(`${id}: Напишите, как называется новое место?`)
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.places({ _offset: 0 }))
+    })
+
+    telegraf.action(Tg.x2_Actions.placesDelete.handler.pattern, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+
+      const { id } = Tg.x2_Actions.placesDelete.handler.parse(context.match)
+      await ydb.placesDelete({ id })
+      await context.deleteMessage()
+    })
+
+    telegraf.action(Tg.x2_Actions.placesGet.handler.pattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
@@ -269,7 +340,7 @@ class Tg {
       if (user) {
         //
         const _limit: number = 5
-        const _offset: number = +context.match[1]
+        const { _offset } = Tg.x2_Actions.placesGet.handler.parse(context.match)
         const tgid: string = `${user.id}`
         const places = await ydb.placesSelectByTgid({ _limit, _offset, tgid })
 
