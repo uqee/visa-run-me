@@ -353,33 +353,42 @@ class Tg {
       const { _offset } = Tg.x2_Actions.needsCreate1_placesGet.handler.parser(context.match)
       const places: Place[] = await ydb.placesSelect({ _limit, _offset })
 
-      for (const place of places) {
-        const { id, name } = place
-        await Tg.x1_Helpers.reply(context, {
-          buttons: [Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId: id })],
-          message: `select ${name}`,
-        })
-      }
+      const bs = places.map((place) => [
+        Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId: place.id }),
+      ])
 
       if (places.length === _limit) {
-        await Tg.x1_Helpers.reply(context, {
-          buttons: [
-            Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit }),
-            Tg.x2_Actions.needs.createButton(),
-          ],
-          message: `get ${_offset + _limit}`,
-        })
+        bs.push([Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit })])
       }
 
       if (places.length < _limit) {
-        await Tg.x1_Helpers.reply(context, {
-          buttons: [
-            Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: Infinity }),
-            Tg.x2_Actions.needs.createButton(),
-          ],
-          message: 'end',
-        })
+        bs.push([Tg.x2_Actions.needs.createButton()])
       }
+
+      await Tg.x1_Helpers.reply(context, {
+        buttons: bs,
+        message: 'select',
+      })
+
+      // if (places.length === _limit) {
+      //   await Tg.x1_Helpers.reply(context, {
+      //     buttons: [
+      //       Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit }),
+      //       Tg.x2_Actions.needs.createButton(),
+      //     ],
+      //     message: `get ${_offset + _limit}`,
+      //   })
+      // }
+
+      // if (places.length < _limit) {
+      //   await Tg.x1_Helpers.reply(context, {
+      //     buttons: [
+      //       Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: Infinity }),
+      //       Tg.x2_Actions.needs.createButton(),
+      //     ],
+      //     message: 'end',
+      //   })
+      // }
     })
 
     telegraf.action(Tg.x2_Actions.needsCreate2_placeSelect.handler.pattern, async (context) => {
