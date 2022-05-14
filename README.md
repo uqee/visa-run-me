@@ -12,61 +12,35 @@
 
 ## Use Cases
 
-    create:car
-      enter:car.name
-      ? enter:car.capacity
+    needs
 
-    delete:car
-      choose:car ! created
-      set:car.deleted
+      need:create
+        need.place:select
+        need.maxday:set
+        need.maxprice:set ?
 
+      needs:get(:next)
+        ! created, due
+          need:delete
+        ! created, overdue
+          need.feedback:set/show
 
-    create:need
-      choose:need.place ? create:place
-      enter:need.deadline
-      ? enter:need.price
+    trips
 
-    delete:need
-      choose:need ! created
-      set:need.deleted
+      trip:create
+        day:set
+        time:set
+        capacity:set
+        <loop>
+          place:select
+          minprice:set
 
-
-    create:place
-      choose:place.country
-      enter:place.name
-
-    delete:place
-      choose:place ! created
-      set:place.deleted
-
-
-    create:trip
-      enter.trip.day
-      ? enter:trip.name
-      ? enter:trip.capacityMin
-      ? enter:trip.capacityMax
-      ? choose:trip.car ? create:car
-      <loop>
-        choose:trip.place ? create:place
-        ? enter:trip.place.price
-        ? enter:trip.place.time
-        ? enter:trip.place.agenda
-      set:trip.status=offered
-
-    accept:trip
-      choose:trip
-      choose:need ! created ? create:need
-      set:need.trip=trip
-
-    confirm:trip
-      choose:trip ! created
-      set:trip.status=confirmed
-
-    feedback:trip
-      choose:trip ! created or accepted, trip.status=finished
-      choose:trip.person ! without feedback
-      enter:feedback.stars
-
-    finish:trip
-      choose:trip ! created
-      set:trip.status=finished
+      trips:get(:next)
+        ! created, due
+          trip:delete
+        ! created, overdue
+          -
+        ! not-created, not-entered
+          need-trip:enter
+        ! not-created, entered
+          need-trip:leave

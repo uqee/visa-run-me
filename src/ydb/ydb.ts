@@ -2,7 +2,7 @@ import { uid } from 'uid'
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
 import { epochFromDate } from '../utils'
-import { Cache, Country, Person, Place } from './ydb-tables'
+import { Cache, Need, Person, Place } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
@@ -80,28 +80,62 @@ class Ydb {
 
   //
 
-  public async countriesSelect(
+  public async needsDelete(
+    args: Pick<Need, 'id'>, //
+  ): Promise<void> {
+    const { id } = args
+    // prettier-ignore
+    await this._execute(
+      `update needs set deleted = ${epochFromDate()} where id == '${id}'`,
+    )
+  }
+
+  public async needsInsert(
+    args: Pick<Need, 'maxday' | 'maxprice' | 'personId' | 'placeId' | 'tgid'>, //
+  ): Promise<Place['id']> {
+    const { maxday, maxprice, personId, placeId, tgid } = args
+    const id: string = uid()
+    // prettier-ignore
+    await this._execute(`
+      insert into needs (
+        feedback, maxday, maxprice, personId, placeId, tripId,
+        created, deleted, id, tgid
+      ) values (
+        0, ${maxday}, ${maxprice}, '${personId}', '${placeId}', null,
+        ${epochFromDate()}, null, '${id}', '${tgid}'
+      )
+    `)
+    return id
+  }
+
+  public async needsSelect(
     args: YdbArgs, //
-  ): Promise<Country[]> {
+  ): Promise<Array<Need & { placeName: Place['name'] }>> {
     const { _limit, _offset } = args
     // prettier-ignore
     return (
-      await this._execute<Country>(`
-        select * from countries where deleted is null
-        order by name limit ${_limit} offset ${_offset}
+      await this._execute<Need & { placeName: Place['name'] }>(`
+        select n.*, p.name as placeName,
+        from needs as n left join places as p on n.placeId = p.id
+        where n.deleted is null
+        order by created desc
+        limit ${_limit} offset ${_offset}
       `)
     )[0]
   }
 
-  public async countriesSelectByTgid(
-    args: YdbArgs & Pick<Place, 'tgid'>, //
-  ): Promise<Country[]> {
+  public async needsSelectByTgid(
+    args: YdbArgs & Pick<Need, 'tgid'>, //
+  ): Promise<Need[]> {
     const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Country>(`
-        select * from countries where tgid == '${tgid}' and deleted is null
-        order by name limit ${_limit} offset ${_offset}
+      await this._execute<Need>(`
+        select *,
+        from needs
+        where tgid == '${tgid}' and deleted is null
+        order by created desc
+        limit ${_limit} offset ${_offset}
       `)
     )[0]
   }
@@ -115,14 +149,14 @@ class Ydb {
     const id: string = uid()
     // prettier-ignore
     await this._execute(`
-      insert into persons (
-        _feedbacksCount, _feedbacksSum, firstname, lastname, tgname,
-        created, deleted, id, tgid
-      ) values (
-        0, 0, '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
-        ${epochFromDate()}, null, '${id}', '${id}'
-      )
-    `)
+        insert into persons (
+          _feedbacksCount, _feedbacksSum, firstname, lastname, tgname,
+          created, deleted, id, tgid
+        ) values (
+          0, 0, '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
+          ${epochFromDate()}, null, '${id}', '${id}'
+        )
+      `)
     return id
   }
 
@@ -132,10 +166,10 @@ class Ydb {
     const { tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Person>(
-        `select * from persons where tgid == '${tgid}'`,
-      )
-    )[0]?.[0]
+        await this._execute<Person>(
+          `select * from persons where tgid == '${tgid}'`,
+        )
+      )[0]?.[0]
   }
 
   public async personsUpdate(
@@ -144,74 +178,29 @@ class Ydb {
     const { id, firstname, lastname, tgname } = args
     // prettier-ignore
     await this._execute(`
-      update
-        persons
-      set
-        firstname = '${firstname}',
-        lastname = ${Ydb.str(lastname)},
-        tgname = ${Ydb.str(tgname)}
-      where
-        id == '${id}'
-    `)
+        update
+          persons
+        set
+          firstname = '${firstname}',
+          lastname = ${Ydb.str(lastname)},
+          tgname = ${Ydb.str(tgname)}
+        where
+          id == '${id}'
+      `)
   }
 
   //
 
-  public async placesDelete(
-    args: Pick<Place, 'id'>, //
-  ): Promise<void> {
-    const { id } = args
-    // prettier-ignore
-    await this._execute(
-      `update places set deleted = ${epochFromDate()} where id == '${id}'`,
-    )
-  }
-
-  public async placesInsert(
-    args: Pick<Place, 'countryId' | 'name' | 'tgid'>, //
-  ): Promise<Place['id']> {
-    const { countryId, name, tgid } = args
-    const id: string = uid()
-    // prettier-ignore
-    await this._execute(`
-      insert into places (
-        countryId, name,
-        created, deleted, id, tgid
-      ) values (
-        '${countryId}', '${name}',
-        ${epochFromDate()}, null, '${id}', '${tgid}'
-      )
-    `)
-    return id
-  }
-
-  public async placesSelectByCountryId(
-    args: YdbArgs & Pick<Place, 'countryId'>, //
+  public async placesSelect(
+    args: YdbArgs, //
   ): Promise<Place[]> {
-    const { _limit, _offset, countryId } = args
+    const { _limit, _offset } = args
     // prettier-ignore
     return (
       await this._execute<Place>(`
         select *
         from places
-        where countryId == '${countryId}' and deleted is null
         order by name
-        limit ${_limit} offset ${_offset}
-      `)
-    )[0]
-  }
-
-  public async placesSelectByTgid(
-    args: YdbArgs & Pick<Place, 'tgid'>, //
-  ): Promise<Array<Place & { countryName: Country['name'] }>> {
-    const { _limit, _offset, tgid } = args
-    // prettier-ignore
-    return (
-      await this._execute<Place & { countryName: Country['name'] }>(`
-        select p.*, c.name as countryName,
-        from places as p left join countries as c on p.countryId = c.id
-        where p.tgid == '${tgid}' and p.deleted is null
-        order by countryName, name
         limit ${_limit} offset ${_offset}
       `)
     )[0]

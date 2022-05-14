@@ -2,21 +2,7 @@ type Epoch = number // timestamp, precision 1 second
 type Id = string // uid, 11 chars
 type Tgid = string
 
-//
-// non-standard
-//
-
-export interface Cache {
-  created: Epoch
-  key: string
-  value: string
-}
-
-//
-// standard
-//
-
-interface Standard {
+interface Table {
   created: Epoch
   deleted: Epoch
   id: Id
@@ -25,41 +11,22 @@ interface Standard {
 
 //
 
-export interface Car extends Standard {
-  _feedbacksCount: number
-  _feedbacksSum: number
-  capacity?: number
-  name: string
-  personId: Id
+export interface Cache {
+  created: Epoch
+  key: string
+  value: string
 }
 
-//
-
-export interface Country extends Standard {
-  name: string
-}
-
-//
-
-export interface Feedback extends Standard {
-  personId: Id // from
-  stars: number
-  tripId: Id // to
-}
-
-//
-
-export interface Need extends Standard {
-  deadline: Epoch
+export interface Need extends Table {
+  feedback: number
+  maxday: Epoch
+  maxprice: number
   personId: Id
   placeId: Id
-  price?: number
-  tripId: Id
+  tripId?: Id
 }
 
-//
-
-export interface Person extends Standard {
+export interface Person extends Table {
   _feedbacksCount: number
   _feedbacksSum: number
   firstname: string
@@ -68,37 +35,18 @@ export interface Person extends Standard {
   tgname?: string
 }
 
-//
-
-export interface Place extends Standard {
-  countryId: Id
+export interface Place extends Table {
   name: string
 }
 
-//
-
-export enum TripStatus {
-  Offered = 0,
-  Confirmed = 1,
-  Finished = 2,
-}
-
-export interface Trip extends Standard {
-  capacityMax?: number
-  capacityMin?: number
-  carId?: Id
+export interface Trip extends Table {
+  capacity: number
   day: Epoch
-  name?: string
   personId: Id
-  status: TripStatus
 }
 
-//
-
-export interface TripPlace extends Standard {
-  agenda?: string
+export interface TripPlace extends Table {
+  minprice: number
   placeId: Id
-  price?: number
-  time?: Epoch
   tripId: Id
 }
