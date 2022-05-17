@@ -86,7 +86,7 @@ class Tg {
       const { buttons, message } = response
 
       const toEscapedMarkdown = (message: string): string => {
-        for (const char of '-()') message = message.replaceAll(char, `\\${char}`)
+        for (const char of '+-()') message = message.replaceAll(char, `\\${char}`)
         return message
       }
 
@@ -105,10 +105,18 @@ class Tg {
       }
 
       await context.replyWithMarkdownV2(
-        Tg.x1_Markdown.italic(toEscapedMarkdown(message)),
+        toEscapedMarkdown(message),
         Markup.inlineKeyboard(buttons.map(toNativeButton)),
       )
     },
+
+    standardHandler:
+      (response: TgActionResponse | undefined) =>
+      async (context: Context): Promise<void> => {
+        await context.answerCbQuery()
+        await context.editMessageReplyMarkup(null)
+        await Tg.x1_Helpers.reply(context, response ?? Tg.x2_Actions.index.createResponse!())
+      },
   } as const
 
   private static readonly x1_Markdown = {
@@ -126,8 +134,10 @@ class Tg {
   private static readonly x1_Strings = {
     CREATE: `${Tg.x0_Symbols.x0_PLUS} Создать`,
     DELETE: `${Tg.x0_Symbols.x0_MINUS} Удалить`,
+    ERROR: 'Что-то пошло не так. Пожалуйста, попробуйте заново.',
     GET: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить`,
     GET_MORE: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить еще`,
+    HELP: 'Используйте кнопки под сообщениями.',
     SELECT: `${Tg.x0_Symbols.x0_CHECK} Выбрать`,
   } as const
 
@@ -139,11 +149,11 @@ class Tg {
     const index: TgAction = {
       createButton: () => ({
         payload: 'index',
-        text: 'index',
+        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Home`,
       }),
       createResponse: () => ({
         buttons: [needs.createButton()],
-        message: 'index',
+        message: index.createButton().text,
       }),
       handler: {
         parser: () => undefined,
@@ -158,14 +168,17 @@ class Tg {
     const needs: TgAction = {
       createButton: () => ({
         payload: 'needs',
-        text: 'needs',
+        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Needs`,
       }),
       createResponse: () => ({
         buttons: [
-          [needsCreate.createButton(), needsGet.createButton({ _offset: 0 })],
+          [
+            needsCreate.createButton(), //
+            needsGet.createButton({ _offset: 0 }),
+          ],
           [index.createButton()],
         ],
-        message: 'needs',
+        message: needs.createButton().text,
       }),
       handler: {
         parser: () => undefined,
@@ -180,6 +193,10 @@ class Tg {
         payload: 'needs:create',
         text: Tg.x1_Strings.CREATE,
       }),
+      createResponse: () => ({
+        buttons: [Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: 0 })],
+        message: Tg.x2_Actions.needsCreate.createButton().text,
+      }),
       handler: {
         parser: () => undefined,
         pattern: /^needs:create$/,
@@ -190,10 +207,10 @@ class Tg {
       createButton: ($) => ({
         hidden: $._offset === Infinity,
         payload: `needs:create1:_offset=${$._offset}`,
-        text: `${Tg.x1_Strings.GET} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.GET}: ${$._offset}`,
       }),
       handler: {
-        parser: ([_, _offset]) => ({ _offset: +_offset }),
+        parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^needs:create1:_offset=(\d+)$/,
       },
     }
@@ -201,10 +218,10 @@ class Tg {
     const needsCreate2_placeSelect: TgAction<Pick<Need, 'placeId'>> = {
       createButton: ($) => ({
         payload: `needs:create2:placeId=${$.placeId}`,
-        text: `${Tg.x1_Strings.SELECT} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}`,
       }),
       handler: {
-        parser: ([_, placeId]) => ({ placeId }),
+        parser: ([, placeId]) => ({ placeId }),
         pattern: /^needs:create2:placeId=(\w+)$/,
       },
     }
@@ -212,10 +229,10 @@ class Tg {
     const needsCreate3_maxdaySet: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
       createButton: ($) => ({
         payload: `needs:create3:placeId=${$.placeId}:maxday=${$.maxday}`,
-        text: `${Tg.x1_Strings.SELECT} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}`,
       }),
       handler: {
-        parser: ([_, placeId, maxday]) => ({
+        parser: ([, placeId, maxday]) => ({
           maxday: +maxday,
           placeId,
         }),
@@ -226,10 +243,10 @@ class Tg {
     const needsCreate4_maxpriceSet: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
       createButton: ($) => ({
         payload: `needs:create4:placeId=${$.placeId}:maxday=${$.maxday}:maxprice=${$.maxprice}`,
-        text: `${Tg.x1_Strings.SELECT} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}, ${$.maxprice}`,
       }),
       handler: {
-        parser: ([_, placeId, maxday, maxprice]) => ({
+        parser: ([, placeId, maxday, maxprice]) => ({
           maxday: +maxday,
           maxprice: +maxprice,
           placeId,
@@ -243,10 +260,10 @@ class Tg {
     const needsDelete: TgAction<Pick<Need, 'id'>> = {
       createButton: ($) => ({
         payload: `needs:delete:id=${$.id}`,
-        text: `${Tg.x1_Strings.DELETE} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.DELETE}: ${$.id}`,
       }),
       handler: {
-        parser: ([_, id]) => ({ id }),
+        parser: ([, id]) => ({ id }),
         pattern: /^needs:delete:id=(\w+)$/,
       },
     }
@@ -257,10 +274,10 @@ class Tg {
       createButton: ($) => ({
         hidden: $._offset === Infinity,
         payload: `needs:get:_offset=${$._offset}`,
-        text: `${Tg.x1_Strings.GET} - ${JSON.stringify($)}`,
+        text: `${Tg.x1_Strings.GET}: ${$._offset}`,
       }),
       handler: {
-        parser: ([_, _offset]) => ({ _offset: +_offset }),
+        parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^needs:get:_offset=(\d+)$/,
       },
     }
@@ -284,10 +301,7 @@ class Tg {
   })()
 
   private static setupIndex(telegraf: Telegraf): void {
-    const indexActionResponse: TgActionResponse = Tg.x2_Actions.index.createResponse!()
-    const messageHelp: string = 'Используйте кнопки под сообщениями'
-
-    //
+    const indexActionResponse: TgActionResponse | undefined = Tg.x2_Actions.index.createResponse!()
 
     telegraf.start(async (context) => {
       const tgid: string = `${context.from.id}`
@@ -302,7 +316,7 @@ class Tg {
     })
 
     telegraf.help(async (context) => {
-      await context.reply(messageHelp)
+      await context.reply(Tg.x1_Strings.HELP)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
@@ -315,12 +329,12 @@ class Tg {
     telegraf.action(/.*/, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
-      await context.reply(messageHelp)
+      await context.reply(Tg.x1_Strings.HELP)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.on('message', async (context) => {
-      await context.reply(messageHelp)
+      await context.reply(Tg.x1_Strings.HELP)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
   }
@@ -328,22 +342,17 @@ class Tg {
   private static setupNeeds(telegraf: Telegraf): void {
     //
 
-    telegraf.action(Tg.x2_Actions.needs.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
-      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needs.createResponse!())
-    })
+    telegraf.action(
+      Tg.x2_Actions.needs.handler.pattern,
+      Tg.x1_Helpers.standardHandler(Tg.x2_Actions.needs.createResponse!()),
+    )
 
     // create
 
-    telegraf.action(Tg.x2_Actions.needsCreate.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
-      await Tg.x1_Helpers.reply(context, {
-        buttons: [Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: 0 })],
-        message: 'get places',
-      })
-    })
+    telegraf.action(
+      Tg.x2_Actions.needsCreate.handler.pattern,
+      Tg.x1_Helpers.standardHandler(Tg.x2_Actions.needsCreate.createResponse!()),
+    )
 
     telegraf.action(Tg.x2_Actions.needsCreate1_placesGet.handler.pattern, async (context) => {
       await context.answerCbQuery()
@@ -353,66 +362,46 @@ class Tg {
       const { _offset } = Tg.x2_Actions.needsCreate1_placesGet.handler.parser(context.match)
       const places: Place[] = await ydb.placesSelect({ _limit, _offset })
 
-      const bs = places.map((place) => [
+      const buttons: TgActionButton[][] = places.map((place) => [
         Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId: place.id }),
       ])
 
       if (places.length === _limit) {
-        bs.push([Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit })])
+        buttons.push([
+          Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit }),
+        ])
       }
 
       if (places.length < _limit) {
-        bs.push([Tg.x2_Actions.needs.createButton()])
+        buttons.push([Tg.x2_Actions.needs.createButton()])
       }
 
       await Tg.x1_Helpers.reply(context, {
-        buttons: bs,
-        message: 'select',
+        buttons,
+        message: Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset }).text,
       })
-
-      // if (places.length === _limit) {
-      //   await Tg.x1_Helpers.reply(context, {
-      //     buttons: [
-      //       Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit }),
-      //       Tg.x2_Actions.needs.createButton(),
-      //     ],
-      //     message: `get ${_offset + _limit}`,
-      //   })
-      // }
-
-      // if (places.length < _limit) {
-      //   await Tg.x1_Helpers.reply(context, {
-      //     buttons: [
-      //       Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: Infinity }),
-      //       Tg.x2_Actions.needs.createButton(),
-      //     ],
-      //     message: 'end',
-      //   })
-      // }
     })
 
     telegraf.action(Tg.x2_Actions.needsCreate2_placeSelect.handler.pattern, async (context) => {
       await context.answerCbQuery()
       await context.editMessageReplyMarkup(null)
 
+      const day: number = 24 * 60 * 60
+      const epoch: number = epochFromDate()
       const { placeId } = Tg.x2_Actions.needsCreate2_placeSelect.handler.parser(context.match)
       await Tg.x1_Helpers.reply(context, {
         buttons: [
-          Tg.x2_Actions.needsCreate3_maxdaySet.createButton({ maxday: epochFromDate(), placeId }),
-          Tg.x2_Actions.needsCreate3_maxdaySet.createButton({
-            maxday: epochFromDate() + 1 * 24 * 60 * 60,
-            placeId,
-          }),
-          Tg.x2_Actions.needsCreate3_maxdaySet.createButton({
-            maxday: epochFromDate() + 2 * 24 * 60 * 60,
-            placeId,
-          }),
-          Tg.x2_Actions.needsCreate3_maxdaySet.createButton({
-            maxday: epochFromDate() + 3 * 24 * 60 * 60,
-            placeId,
-          }),
-        ],
-        message: 'maxday',
+          [1, 2, 3, 4, 5],
+          [6, 7, 8, 9, 10],
+        ].map((maxdays: number[]): TgActionButton[] => {
+          return maxdays.map((maxday: number): TgActionButton => {
+            return Tg.x2_Actions.needsCreate3_maxdaySet.createButton({
+              maxday: epoch + maxday * day,
+              placeId,
+            })
+          })
+        }),
+        message: Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId }).text,
       })
     })
 
@@ -423,13 +412,18 @@ class Tg {
       const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxdaySet.handler.parser(context.match)
       await Tg.x1_Helpers.reply(context, {
         buttons: [
-          Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({ maxday, maxprice: 1, placeId }),
-          Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({ maxday, maxprice: 2, placeId }),
-          Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({ maxday, maxprice: 3, placeId }),
-          Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({ maxday, maxprice: 4, placeId }),
-          Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({ maxday, maxprice: 5, placeId }),
-        ],
-        message: 'maxprice',
+          [5, 10, 15, 20, 25],
+          [30, 35, 40, 45, 50],
+        ].map((maxprices: number[]): TgActionButton[] => {
+          return maxprices.map((maxprice: number): TgActionButton => {
+            return Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({
+              maxday,
+              maxprice,
+              placeId,
+            })
+          })
+        }),
+        message: Tg.x2_Actions.needsCreate3_maxdaySet.createButton({ maxday, placeId }).text,
       })
     })
 
@@ -449,15 +443,14 @@ class Tg {
           await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
           return await Tg.x1_Helpers.reply(context, {
             buttons: [Tg.x2_Actions.needs.createButton()],
-            message: 'hvala',
+            message: Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({
+              maxday,
+              maxprice,
+              placeId,
+            }).text,
           })
         }
       }
-
-      await Tg.x1_Helpers.reply(context, {
-        buttons: [Tg.x2_Actions.needs.createButton()],
-        message: 'wtf',
-      })
     })
 
     // delete
@@ -489,7 +482,7 @@ class Tg {
           const { id, placeName } = need
           await Tg.x1_Helpers.reply(context, {
             buttons: [Tg.x2_Actions.needsDelete.createButton({ id })],
-            message: `${Tg.x1_Markdown.bold(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
+            message: `${Tg.x1_Markdown.code(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
           })
         }
 
@@ -499,7 +492,7 @@ class Tg {
               Tg.x2_Actions.needsGet.createButton({ _offset: _offset + _limit }),
               Tg.x2_Actions.needs.createButton(),
             ],
-            message: 'next',
+            message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
           })
         }
 
@@ -509,7 +502,7 @@ class Tg {
               Tg.x2_Actions.needsGet.createButton({ _offset: Infinity }),
               Tg.x2_Actions.needs.createButton(),
             ],
-            message: 'end',
+            message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
           })
         }
       }
