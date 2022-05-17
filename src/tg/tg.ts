@@ -110,13 +110,13 @@ class Tg {
       )
     },
 
-    standardHandler:
-      (response: TgActionResponse | undefined) =>
-      async (context: Context): Promise<void> => {
-        await context.answerCbQuery()
-        await context.editMessageReplyMarkup(null)
-        await Tg.x1_Helpers.reply(context, response ?? Tg.x2_Actions.index.createResponse!())
-      },
+    // standardHandler:
+    //   (response: TgActionResponse | undefined) =>
+    //   async (context: Context): Promise<void> => {
+    //     await context.answerCbQuery()
+    //     await context.editMessageReplyMarkup(null)
+    //     await Tg.x1_Helpers.reply(context, response ?? Tg.x2_Actions.index.createResponse!())
+    //   },
   } as const
 
   private static readonly x1_Markdown = {
@@ -342,17 +342,19 @@ class Tg {
   private static setupNeeds(telegraf: Telegraf): void {
     //
 
-    telegraf.action(
-      Tg.x2_Actions.needs.handler.pattern,
-      Tg.x1_Helpers.standardHandler(Tg.x2_Actions.needs.createResponse!()),
-    )
+    telegraf.action(Tg.x2_Actions.needs.handler.pattern, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needs.createResponse!())
+    })
 
     // create
 
-    telegraf.action(
-      Tg.x2_Actions.needsCreate.handler.pattern,
-      Tg.x1_Helpers.standardHandler(Tg.x2_Actions.needsCreate.createResponse!()),
-    )
+    telegraf.action(Tg.x2_Actions.needsCreate.handler.pattern, async (context) => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(null)
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needsCreate.createResponse!())
+    })
 
     telegraf.action(Tg.x2_Actions.needsCreate1_placesGet.handler.pattern, async (context) => {
       await context.answerCbQuery()
