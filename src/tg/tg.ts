@@ -4,7 +4,7 @@
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
-import { Update, User } from '@grammyjs/types'
+import { InlineKeyboardButton, Update, User } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
 import { epochFromDate } from '../utils'
@@ -24,7 +24,7 @@ interface TgActionHandler<TArgs extends object | void = void> {
 }
 
 interface TgActionResponse {
-  buttons: Parameters<typeof Markup.inlineKeyboard>[0]
+  buttons: TgActionButton[][]
   message: string
 }
 
@@ -82,31 +82,25 @@ class Tg {
   } as const
 
   private static readonly x1_Helpers = {
-    reply: async (context: Context, response: TgActionResponse): Promise<void> => {
-      const { buttons, message } = response
-
-      const toEscapedMarkdown = (message: string): string => {
-        for (const char of '+-()') message = message.replaceAll(char, `\\${char}`)
-        return message
-      }
-
-      const toNativeButton = (
-        button: TgActionButton | TgActionButton[],
-      ): // eslint-disable-next-line id-blacklist
-      | ReturnType<typeof Markup.button.callback>
-        // eslint-disable-next-line id-blacklist
-        | Array<ReturnType<typeof Markup.button.callback>> => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        if (Array.isArray(button)) return button.map((b) => toNativeButton(b))
-        else {
+    _toCallbackButtons: (matrix: TgActionButton[][]): InlineKeyboardButton.CallbackButton[][] => {
+      return matrix.map((array) => {
+        return array.map((button) => {
           const { hidden, payload, text } = button
           return Markup.button.callback(text, payload, hidden)
-        }
-      }
+        })
+      })
+    },
 
+    _toEscapedMarkdown: (message: string): string => {
+      for (const char of '+-()') message = message.replaceAll(char, `\\${char}`)
+      return message
+    },
+
+    reply: async (context: Context, response: TgActionResponse): Promise<void> => {
+      const { buttons, message } = response
       await context.replyWithMarkdownV2(
-        toEscapedMarkdown(message),
-        Markup.inlineKeyboard(buttons.map(toNativeButton)),
+        Tg.x1_Helpers._toEscapedMarkdown(message),
+        Markup.inlineKeyboard(Tg.x1_Helpers._toCallbackButtons(buttons)),
       )
     },
 
@@ -114,7 +108,7 @@ class Tg {
     //   (response: TgActionResponse | undefined) =>
     //   async (context: Context): Promise<void> => {
     //     await context.answerCbQuery()
-    //     await context.editMessageReplyMarkup(null)
+    //     await context.editMessageReplyMarkup(undefined)
     //     await Tg.x1_Helpers.reply(context, response ?? Tg.x2_Actions.index.createResponse!())
     //   },
   } as const
@@ -152,7 +146,7 @@ class Tg {
         text: `${Tg.x0_Symbols.x2_ARROWHEAD} Home`,
       }),
       createResponse: () => ({
-        buttons: [needs.createButton()],
+        buttons: [[needs.createButton()]],
         message: index.createButton().text,
       }),
       handler: {
@@ -194,7 +188,7 @@ class Tg {
         text: Tg.x1_Strings.CREATE,
       }),
       createResponse: () => ({
-        buttons: [Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: 0 })],
+        buttons: [[Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: 0 })]],
         message: Tg.x2_Actions.needsCreate.createButton().text,
       }),
       handler: {
@@ -322,13 +316,13 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.index.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.action(/.*/, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
       await context.reply(Tg.x1_Strings.HELP)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
@@ -344,7 +338,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needs.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
       await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needs.createResponse!())
     })
 
@@ -352,13 +346,13 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsCreate.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
       await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needsCreate.createResponse!())
     })
 
     telegraf.action(Tg.x2_Actions.needsCreate1_placesGet.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const _limit: number = 10
       const { _offset } = Tg.x2_Actions.needsCreate1_placesGet.handler.parser(context.match)
@@ -386,7 +380,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsCreate2_placeSelect.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const day: number = 24 * 60 * 60
       const epoch: number = epochFromDate()
@@ -409,7 +403,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsCreate3_maxdaySet.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxdaySet.handler.parser(context.match)
       await Tg.x1_Helpers.reply(context, {
@@ -431,7 +425,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsCreate4_maxpriceSet.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const { maxday, maxprice, placeId } = Tg.x2_Actions.needsCreate4_maxpriceSet.handler.parser(
         context.match,
@@ -443,8 +437,8 @@ class Tg {
         const person = await ydb.personsSelectByTgid({ tgid })
         if (person) {
           await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
-          return await Tg.x1_Helpers.reply(context, {
-            buttons: [Tg.x2_Actions.needs.createButton()],
+          await Tg.x1_Helpers.reply(context, {
+            buttons: [[Tg.x2_Actions.needs.createButton()]],
             message: Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({
               maxday,
               maxprice,
@@ -459,7 +453,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsDelete.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const { id } = Tg.x2_Actions.needsDelete.handler.parser(context.match)
       await ydb.needsDelete({ id })
@@ -470,7 +464,7 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsGet.handler.pattern, async (context) => {
       await context.answerCbQuery()
-      await context.editMessageReplyMarkup(null)
+      await context.editMessageReplyMarkup(undefined)
 
       const user: User | undefined = context.from
       if (user) {
@@ -483,7 +477,7 @@ class Tg {
         for (const need of needs) {
           const { id, placeName } = need
           await Tg.x1_Helpers.reply(context, {
-            buttons: [Tg.x2_Actions.needsDelete.createButton({ id })],
+            buttons: [[Tg.x2_Actions.needsDelete.createButton({ id })]],
             message: `${Tg.x1_Markdown.code(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
           })
         }
@@ -491,8 +485,10 @@ class Tg {
         if (needs.length === _limit) {
           await Tg.x1_Helpers.reply(context, {
             buttons: [
-              Tg.x2_Actions.needsGet.createButton({ _offset: _offset + _limit }),
-              Tg.x2_Actions.needs.createButton(),
+              [
+                Tg.x2_Actions.needsGet.createButton({ _offset: _offset + _limit }),
+                Tg.x2_Actions.needs.createButton(),
+              ],
             ],
             message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
           })
@@ -501,8 +497,10 @@ class Tg {
         if (needs.length < _limit) {
           await Tg.x1_Helpers.reply(context, {
             buttons: [
-              Tg.x2_Actions.needsGet.createButton({ _offset: Infinity }),
-              Tg.x2_Actions.needs.createButton(),
+              [
+                Tg.x2_Actions.needsGet.createButton({ _offset: Infinity }),
+                Tg.x2_Actions.needs.createButton(),
+              ],
             ],
             message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
           })
