@@ -85,9 +85,11 @@ class Ydb {
   ): Promise<void> {
     const { id } = args
     // prettier-ignore
-    await this._execute(
-      `update needs set deleted = ${epochFromDate()} where id == '${id}'`,
-    )
+    await this._execute(`
+      update needs
+      set deleted = ${epochFromDate()}
+      where id == '${id}'
+    `)
   }
 
   public async needsInsert(
@@ -98,10 +100,10 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       insert into needs (
-        feedback, maxday, maxprice, personId, placeId, tripId,
+        maxday, maxprice, personId, placeId,
         created, deleted, id, tgid
       ) values (
-        0, ${maxday}, ${maxprice}, '${personId}', '${placeId}', null,
+        ${maxday}, ${maxprice}, '${personId}', '${placeId}',
         ${epochFromDate()}, null, '${id}', '${tgid}'
       )
     `)
@@ -131,7 +133,7 @@ class Ydb {
     // prettier-ignore
     return (
       await this._execute<Need>(`
-        select *,
+        select *
         from needs
         where tgid == '${tgid}' and deleted is null
         order by created desc
@@ -150,10 +152,10 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
         insert into persons (
-          _feedbacksCount, _feedbacksSum, firstname, lastname, tgname,
+          firstname, lastname, tgname,
           created, deleted, id, tgid
         ) values (
-          0, 0, '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
+          '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
           ${epochFromDate()}, null, '${id}', '${id}'
         )
       `)

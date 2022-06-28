@@ -18,12 +18,10 @@ create table caches (
 );
 
 create table needs (
-  feedback uint8, -- stars
   maxday uint32,
   maxprice uint8,
   personId string,
   placeId string,
-  tripId string,
 
   created uint32,
   deleted uint32,
@@ -34,8 +32,6 @@ create table needs (
 );
 
 create table persons (
-  _feedbacksCount uint32,
-  _feedbacksSum uint32,
   firstname utf8,
   lastname utf8,
   -- tgid string,
@@ -100,9 +96,9 @@ commit;
 -- 11 lowercased letters and digits
 
 replace into persons
-  (_feedbacksCount, _feedbacksSum, firstname, lastname, tgname, created, deleted, id, tgid)
+  (firstname, lastname, tgname, created, deleted, id, tgid)
 values
-  (0, 0, 'Denis', 'Zhbankov', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '115469675');
+  ('Denis', 'Zhbankov', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '115469675');
 
 replace into places
   (name, created, deleted, id, tgid)

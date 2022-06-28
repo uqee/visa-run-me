@@ -14,20 +14,21 @@
 
     needs
 
-      need:create
-        need.place:select
-        need.maxday:set
-        need.maxprice:set ?
+      list(offset)
 
-      needs:get(:next)
-        ! created, due
-          need:delete
-        ! created, overdue
-          need.feedback:set/show
+      create
+        place:select
+        maxday:set
+        maxprice:set
+
+      delete
+        :select
 
     trips
 
-      trip:create
+      list(offset)
+
+      create
         day:set
         time:set
         capacity:set
@@ -35,12 +36,5 @@
           place:select
           minprice:set
 
-      trips:get(:next)
-        ! created, due
-          trip:delete
-        ! created, overdue
-          -
-        ! not-created, not-entered
-          need-trip:enter
-        ! not-created, entered
-          need-trip:leave
+      delete
+        :select

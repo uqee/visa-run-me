@@ -18,17 +18,13 @@ export interface Cache {
 }
 
 export interface Need extends Table {
-  feedback: number
   maxday: Epoch
   maxprice: number
   personId: Id
   placeId: Id
-  tripId?: Id
 }
 
 export interface Person extends Table {
-  _feedbacksCount: number
-  _feedbacksSum: number
   firstname: string
   lastname?: string
   // tgid: Tgid
