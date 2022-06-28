@@ -1,6 +1,7 @@
 // https://github.com/telegraf/telegraf/blob/v4/docs/examples/wizards/wizard-bot-custom-context-and-session-and-scene-session.ts
 
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
@@ -96,6 +97,11 @@ class Tg {
       return message
     },
 
+    accept: async (context: Context): Promise<void> => {
+      await context.answerCbQuery()
+      await context.editMessageReplyMarkup(undefined)
+    },
+
     reply: async (context: Context, response: TgActionResponse): Promise<void> => {
       const { buttons, message } = response
       await context.replyWithMarkdownV2(
@@ -167,7 +173,7 @@ class Tg {
       createResponse: () => ({
         buttons: [
           [
-            needsCreate.createButton(), //
+            needsCreate0_manual.createButton(), //
             needsGet.createButton({ _offset: 0 }),
           ],
           [index.createButton()],
@@ -182,34 +188,33 @@ class Tg {
 
     // create
 
-    const needsCreate: TgAction = {
+    const needsCreate0_manual: TgAction = {
       createButton: () => ({
-        payload: 'needs:create',
+        payload: 'needs:create0',
         text: Tg.x1_Strings.CREATE,
       }),
       createResponse: () => ({
-        buttons: [[Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: 0 })]],
-        message: Tg.x2_Actions.needsCreate.createButton().text,
+        buttons: [[Tg.x2_Actions.needsCreate1_places.createButton()]],
+        message: Tg.x2_Actions.needsCreate0_manual.createButton().text,
       }),
       handler: {
         parser: () => undefined,
-        pattern: /^needs:create$/,
+        pattern: /^needs:create0$/,
       },
     }
 
-    const needsCreate1_placesGet: TgAction<Pick<YdbArgs, '_offset'>> = {
-      createButton: ($) => ({
-        hidden: $._offset === Infinity,
-        payload: `needs:create1:_offset=${$._offset}`,
-        text: `${Tg.x1_Strings.GET}: ${$._offset}`,
+    const needsCreate1_places: TgAction = {
+      createButton: () => ({
+        payload: 'needs:create1',
+        text: `${Tg.x1_Strings.GET}`,
       }),
       handler: {
-        parser: ([, _offset]) => ({ _offset: +_offset }),
-        pattern: /^needs:create1:_offset=(\d+)$/,
+        parser: () => undefined,
+        pattern: /^needs:create1$/,
       },
     }
 
-    const needsCreate2_placeSelect: TgAction<Pick<Need, 'placeId'>> = {
+    const needsCreate2_place: TgAction<Pick<Need, 'placeId'>> = {
       createButton: ($) => ({
         payload: `needs:create2:placeId=${$.placeId}`,
         text: `${Tg.x1_Strings.SELECT}: ${$.placeId}`,
@@ -220,7 +225,7 @@ class Tg {
       },
     }
 
-    const needsCreate3_maxdaySet: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
+    const needsCreate3_maxday: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
       createButton: ($) => ({
         payload: `needs:create3:placeId=${$.placeId}:maxday=${$.maxday}`,
         text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}`,
@@ -234,7 +239,7 @@ class Tg {
       },
     }
 
-    const needsCreate4_maxpriceSet: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
+    const needsCreate4_maxprice: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
       createButton: ($) => ({
         payload: `needs:create4:placeId=${$.placeId}:maxday=${$.maxday}:maxprice=${$.maxprice}`,
         text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}, ${$.maxprice}`,
@@ -284,11 +289,11 @@ class Tg {
       index,
 
       needs,
-      needsCreate,
-      needsCreate1_placesGet,
-      needsCreate2_placeSelect,
-      needsCreate3_maxdaySet,
-      needsCreate4_maxpriceSet,
+      needsCreate0_manual,
+      needsCreate1_places,
+      needsCreate2_place,
+      needsCreate3_maxday,
+      needsCreate4_maxprice,
       needsDelete,
       needsGet,
     } as const
@@ -315,14 +320,12 @@ class Tg {
     })
 
     telegraf.action(Tg.x2_Actions.index.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+      await Tg.x1_Helpers.accept(context)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.action(/.*/, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+      await Tg.x1_Helpers.accept(context)
       await context.reply(Tg.x1_Strings.HELP)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
@@ -337,123 +340,111 @@ class Tg {
     //
 
     telegraf.action(Tg.x2_Actions.needs.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+      await Tg.x1_Helpers.accept(context)
       await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needs.createResponse!())
     })
 
     // create
 
-    telegraf.action(Tg.x2_Actions.needsCreate.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
-      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needsCreate.createResponse!())
+    telegraf.action(Tg.x2_Actions.needsCreate0_manual.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+      await Tg.x1_Helpers.reply(context, Tg.x2_Actions.needsCreate0_manual.createResponse!())
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate1_placesGet.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+    telegraf.action(Tg.x2_Actions.needsCreate1_places.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
 
-      const _limit: number = 10
-      const { _offset } = Tg.x2_Actions.needsCreate1_placesGet.handler.parser(context.match)
-      const places: Place[] = await ydb.placesSelect({ _limit, _offset })
+      const _limit: number = 32
+      const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
+      if (places.length === _limit) console.warn('places.length === _limit')
 
-      const buttons: TgActionButton[][] = places.map((place) => [
-        Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId: place.id }),
+      const placeButtons: TgActionButton[][] = places.map((place) => [
+        Tg.x2_Actions.needsCreate2_place.createButton({ placeId: place.id }),
       ])
 
-      if (places.length === _limit) {
-        buttons.push([
-          Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset: _offset + _limit }),
-        ])
-      }
-
-      if (places.length < _limit) {
-        buttons.push([Tg.x2_Actions.needs.createButton()])
-      }
-
       await Tg.x1_Helpers.reply(context, {
-        buttons,
-        message: Tg.x2_Actions.needsCreate1_placesGet.createButton({ _offset }).text,
+        buttons: [...placeButtons, [Tg.x2_Actions.needs.createButton()]],
+        message: Tg.x2_Actions.needsCreate1_places.createButton().text,
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate2_placeSelect.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+    telegraf.action(Tg.x2_Actions.needsCreate2_place.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
 
       const day: number = 24 * 60 * 60
       const epoch: number = epochFromDate()
-      const { placeId } = Tg.x2_Actions.needsCreate2_placeSelect.handler.parser(context.match)
-      await Tg.x1_Helpers.reply(context, {
-        buttons: [
-          [1, 2, 3, 4, 5],
-          [6, 7, 8, 9, 10],
-        ].map((maxdays: number[]): TgActionButton[] => {
-          return maxdays.map((maxday: number): TgActionButton => {
-            return Tg.x2_Actions.needsCreate3_maxdaySet.createButton({
-              maxday: epoch + maxday * day,
-              placeId,
-            })
+      const { placeId } = Tg.x2_Actions.needsCreate2_place.handler.parser(context.match)
+
+      const maxdayButtons: TgActionButton[][] = [
+        [1, 2, 3, 4, 5],
+        [6, 7, 8, 9, 10],
+      ].map((maxdays: number[]): TgActionButton[] => {
+        return maxdays.map((maxday: number): TgActionButton => {
+          return Tg.x2_Actions.needsCreate3_maxday.createButton({
+            maxday: epoch + maxday * day,
+            placeId,
           })
-        }),
-        message: Tg.x2_Actions.needsCreate2_placeSelect.createButton({ placeId }).text,
+        })
+      })
+
+      await Tg.x1_Helpers.reply(context, {
+        buttons: [...maxdayButtons, [Tg.x2_Actions.needs.createButton()]],
+        message: Tg.x2_Actions.needsCreate2_place.createButton({ placeId }).text,
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate3_maxdaySet.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+    telegraf.action(Tg.x2_Actions.needsCreate3_maxday.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
 
-      const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxdaySet.handler.parser(context.match)
-      await Tg.x1_Helpers.reply(context, {
-        buttons: [
-          [5, 10, 15, 20, 25],
-          [30, 35, 40, 45, 50],
-        ].map((maxprices: number[]): TgActionButton[] => {
-          return maxprices.map((maxprice: number): TgActionButton => {
-            return Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({
-              maxday,
-              maxprice,
-              placeId,
-            })
+      const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxday.handler.parser(context.match)
+      const maxpriceButtons: TgActionButton[][] = [
+        [5, 10, 15, 20, 25],
+        [30, 35, 40, 45, 50],
+      ].map((maxprices: number[]): TgActionButton[] => {
+        return maxprices.map((maxprice: number): TgActionButton => {
+          return Tg.x2_Actions.needsCreate4_maxprice.createButton({
+            maxday,
+            maxprice,
+            placeId,
           })
-        }),
-        message: Tg.x2_Actions.needsCreate3_maxdaySet.createButton({ maxday, placeId }).text,
+        })
+      })
+
+      await Tg.x1_Helpers.reply(context, {
+        buttons: [...maxpriceButtons, [Tg.x2_Actions.needs.createButton()]],
+        message: Tg.x2_Actions.needsCreate3_maxday.createButton({ maxday, placeId }).text,
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate4_maxpriceSet.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+    telegraf.action(Tg.x2_Actions.needsCreate4_maxprice.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
 
-      const { maxday, maxprice, placeId } = Tg.x2_Actions.needsCreate4_maxpriceSet.handler.parser(
+      const { maxday, maxprice, placeId } = Tg.x2_Actions.needsCreate4_maxprice.handler.parser(
         context.match,
       )
 
       const user: User | undefined = context.from
-      if (user) {
-        const tgid: string = `${user.id}`
-        const person = await ydb.personsSelectByTgid({ tgid })
-        if (person) {
-          await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
-          await Tg.x1_Helpers.reply(context, {
-            buttons: [[Tg.x2_Actions.needs.createButton()]],
-            message: Tg.x2_Actions.needsCreate4_maxpriceSet.createButton({
-              maxday,
-              maxprice,
-              placeId,
-            }).text,
-          })
-        }
+      if (!user) return
+
+      const tgid: string = `${user.id}`
+      const person = await ydb.personsSelectByTgid({ tgid })
+      if (person) {
+        await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
+        await Tg.x1_Helpers.reply(context, {
+          buttons: [[Tg.x2_Actions.needs.createButton()]],
+          message: Tg.x2_Actions.needsCreate4_maxprice.createButton({
+            maxday,
+            maxprice,
+            placeId,
+          }).text,
+        })
       }
     })
 
     // delete
 
     telegraf.action(Tg.x2_Actions.needsDelete.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+      await Tg.x1_Helpers.accept(context)
 
       const { id } = Tg.x2_Actions.needsDelete.handler.parser(context.match)
       await ydb.needsDelete({ id })
@@ -463,48 +454,45 @@ class Tg {
     // get
 
     telegraf.action(Tg.x2_Actions.needsGet.handler.pattern, async (context) => {
-      await context.answerCbQuery()
-      await context.editMessageReplyMarkup(undefined)
+      await Tg.x1_Helpers.accept(context)
 
       const user: User | undefined = context.from
-      if (user) {
-        //
-        const _limit: number = 10
-        const { _offset } = Tg.x2_Actions.needsGet.handler.parser(context.match)
-        // const tgid: string = `${user.id}`
-        const needs = await ydb.needsSelect({ _limit, _offset })
+      if (!user) return
 
-        for (const need of needs) {
-          const { id, placeName } = need
-          await Tg.x1_Helpers.reply(context, {
-            buttons: [[Tg.x2_Actions.needsDelete.createButton({ id })]],
-            message: `${Tg.x1_Markdown.code(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
-          })
-        }
+      const _limit: number = 5
+      const { _offset } = Tg.x2_Actions.needsGet.handler.parser(context.match)
+      const needs = await ydb.needsSelect({ _limit, _offset })
 
-        if (needs.length === _limit) {
-          await Tg.x1_Helpers.reply(context, {
-            buttons: [
-              [
-                Tg.x2_Actions.needsGet.createButton({ _offset: _offset + _limit }),
-                Tg.x2_Actions.needs.createButton(),
-              ],
+      for (const need of needs) {
+        const { id, placeName } = need
+        await Tg.x1_Helpers.reply(context, {
+          buttons: [[Tg.x2_Actions.needsDelete.createButton({ id })]],
+          message: `${Tg.x1_Markdown.code(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
+        })
+      }
+
+      if (needs.length === _limit) {
+        await Tg.x1_Helpers.reply(context, {
+          buttons: [
+            [
+              Tg.x2_Actions.needsGet.createButton({ _offset: _offset + _limit }),
+              Tg.x2_Actions.needs.createButton(),
             ],
-            message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
-          })
-        }
+          ],
+          message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
+        })
+      }
 
-        if (needs.length < _limit) {
-          await Tg.x1_Helpers.reply(context, {
-            buttons: [
-              [
-                Tg.x2_Actions.needsGet.createButton({ _offset: Infinity }),
-                Tg.x2_Actions.needs.createButton(),
-              ],
+      if (needs.length < _limit) {
+        await Tg.x1_Helpers.reply(context, {
+          buttons: [
+            [
+              Tg.x2_Actions.needsGet.createButton({ _offset: Infinity }),
+              Tg.x2_Actions.needs.createButton(),
             ],
-            message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
-          })
-        }
+          ],
+          message: Tg.x2_Actions.needsGet.createButton({ _offset }).text,
+        })
       }
     })
   }
