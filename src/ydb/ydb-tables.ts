@@ -1,6 +1,6 @@
 type Epoch = number // timestamp, precision 1 second
 type Id = string // uid, 11 chars
-type Tgid = string
+export type Tgid = string
 
 interface Table {
   created: Epoch

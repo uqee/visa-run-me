@@ -9,9 +9,13 @@ import { InlineKeyboardButton, Update, User } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
 import { epochFromDate } from '../utils'
-import { Need, Place, ydb, YdbArgs } from '../ydb'
+import { Need, Place, Tgid, ydb, YdbArgs } from '../ydb'
 
 //
+
+interface Hideable {
+  hidden?: boolean
+}
 
 interface TgActionButton {
   hidden?: boolean
@@ -102,6 +106,13 @@ class Tg {
       await context.editMessageReplyMarkup(undefined)
     },
 
+    getTgid: (context: Context): Tgid | never => {
+      const user: User | undefined = context.from
+      if (user === undefined) throw new Error('user === undefined')
+      const tgid: Tgid = `${user.id}`
+      return tgid
+    },
+
     reply: async (context: Context, response: TgActionResponse): Promise<void> => {
       const { buttons, message } = response
       await context.replyWithMarkdownV2(
@@ -109,14 +120,6 @@ class Tg {
         Markup.inlineKeyboard(Tg.x1_Helpers._toCallbackButtons(buttons)),
       )
     },
-
-    // standardHandler:
-    //   (response: TgActionResponse | undefined) =>
-    //   async (context: Context): Promise<void> => {
-    //     await context.answerCbQuery()
-    //     await context.editMessageReplyMarkup(undefined)
-    //     await Tg.x1_Helpers.reply(context, response ?? Tg.x2_Actions.index.createResponse!())
-    //   },
   } as const
 
   private static readonly x1_Markdown = {
@@ -256,8 +259,9 @@ class Tg {
 
     // delete
 
-    const needsDelete: TgAction<Pick<Need, 'id'>> = {
+    const needsDelete: TgAction<Pick<Need, 'id'> & Hideable> = {
       createButton: ($) => ({
+        hidden: $.hidden,
         payload: `needs:delete:id=${$.id}`,
         text: `${Tg.x1_Strings.DELETE}: ${$.id}`,
       }),
@@ -303,7 +307,7 @@ class Tg {
     const indexActionResponse: TgActionResponse | undefined = Tg.x2_Actions.index.createResponse!()
 
     telegraf.start(async (context) => {
-      const tgid: string = `${context.from.id}`
+      const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
       const { first_name: firstname, last_name: lastname, username: tgname } = context.message.from
 
       const person = await ydb.personsSelectByTgid({ tgid })
@@ -423,10 +427,7 @@ class Tg {
         context.match,
       )
 
-      const user: User | undefined = context.from
-      if (!user) return
-
-      const tgid: string = `${user.id}`
+      const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
       const person = await ydb.personsSelectByTgid({ tgid })
       if (person) {
         await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
@@ -455,18 +456,16 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.needsGet.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
-
-      const user: User | undefined = context.from
-      if (!user) return
+      const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
 
       const _limit: number = 5
       const { _offset } = Tg.x2_Actions.needsGet.handler.parser(context.match)
       const needs = await ydb.needsSelect({ _limit, _offset })
 
       for (const need of needs) {
-        const { id, placeName } = need
+        const { id, placeName, tgid: needTgid } = need
         await Tg.x1_Helpers.reply(context, {
-          buttons: [[Tg.x2_Actions.needsDelete.createButton({ id })]],
+          buttons: [[Tg.x2_Actions.needsDelete.createButton({ hidden: needTgid !== tgid, id })]],
           message: `${Tg.x1_Markdown.code(id)} ${Tg.x0_Symbols.x0_DOT} ${placeName}`,
         })
       }
