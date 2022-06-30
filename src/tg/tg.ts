@@ -106,17 +106,17 @@ class Tg {
       buttonText: (args: TArgs) => string
     }): TgAction<TArgs> => {
       interface TgActionButtonPayload<TPayload extends object | unknown = unknown> {
-        action: string
-        payload: TPayload
+        a: string // action
+        p: TPayload // payload
       }
       return {
         button: (payload) => ({
-          payload: JSON.stringify({ action, payload } as TgActionButtonPayload<TArgs>),
+          payload: JSON.stringify({ a: action, p: payload } as TgActionButtonPayload<TArgs>),
           text: buttonText(payload),
         }),
         handler: {
-          parser: ([payload]) => (JSON.parse(payload) as TgActionButtonPayload<TArgs>).payload,
-          pattern: new RegExp(`^{\\"action\\":\\"${action}\\".*`),
+          parser: ([payload]) => (JSON.parse(payload) as TgActionButtonPayload<TArgs>).p,
+          pattern: new RegExp(`^{\\"a\\":\\"${action}\\".*`),
         },
       }
     },
@@ -128,10 +128,10 @@ class Tg {
     },
 
     reply: async (context: Context, response: TgActionResponse): Promise<void> => {
-      const { keyboard: buttons, message } = response
+      const { keyboard, message } = response
       await context.replyWithMarkdownV2(
         Tg.x1_Helpers._toEscapedMarkdown(message),
-        Markup.inlineKeyboard(Tg.x1_Helpers._toCallbackButtons(buttons)),
+        Markup.inlineKeyboard(Tg.x1_Helpers._toCallbackButtons(keyboard)),
       )
     },
   } as const
@@ -582,7 +582,7 @@ class Tg {
     Tg.setupIndex(telegraf)
 
     telegraf.catch((error) => {
-      if (debug) console.log('TG : error', JSON.stringify(error))
+      if (debug) console.error('TG : error', JSON.stringify(error))
       throw error
     })
 

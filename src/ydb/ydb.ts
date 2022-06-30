@@ -33,7 +33,7 @@ class Ydb {
       if (this.debug) console.log('YDB : response', Ydb.stringify(response))
       return response as SdkExecuteDataQueryReturnType<T>
     } catch (error) {
-      if (this.debug) console.log('YDB : error', error)
+      if (this.debug) console.error('YDB : error', error)
       throw error
     }
   }
