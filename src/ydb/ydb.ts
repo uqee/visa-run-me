@@ -97,7 +97,7 @@ class Ydb {
     await this._execute(`
       update needs
       set deleted = ${epochFromDate()}
-      where id == '${id}'
+      where id == ${id}
     `)
   }
 

@@ -8,7 +8,7 @@ import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
 import { epochFromDate } from '../utils'
-import { Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
+import { Need, Person, Place, Tgid, ydb, YdbArgs } from '../ydb'
 
 //
 
@@ -98,29 +98,6 @@ class Tg {
       await context.editMessageReplyMarkup(undefined)
     },
 
-    create: <TArgs extends object | void = void>({
-      action,
-      buttonText,
-    }: {
-      action: string
-      buttonText: (args: TArgs) => string
-    }): TgAction<TArgs> => {
-      interface TgActionButtonPayload<TPayload extends object | unknown = unknown> {
-        a: string // action
-        p: TPayload // payload
-      }
-      return {
-        button: (payload) => ({
-          payload: JSON.stringify({ a: action, p: payload } as TgActionButtonPayload<TArgs>),
-          text: buttonText(payload),
-        }),
-        handler: {
-          parser: ([payload]) => (JSON.parse(payload) as TgActionButtonPayload<TArgs>).p,
-          pattern: new RegExp(`^{\\"a\\":\\"${action}\\".*`),
-        },
-      }
-    },
-
     getTgid: (context: Context): Tgid | never => {
       const tgid: Tgid | undefined = context.from?.id
       if (tgid === undefined) throw new Error('tgid === undefined')
@@ -159,177 +136,145 @@ class Tg {
   } as const
 
   private static readonly x2_Actions = {
-    index: Tg.x1_Helpers.create({
-      action: 'index',
-      buttonText: () => 'index',
-    }),
+    index: {
+      button: () => ({
+        payload: 'i',
+        text: 'i',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^i$/,
+      },
+    } as TgAction,
 
     //
     // needs
     //
 
-    needs: Tg.x1_Helpers.create({
-      action: 'needs',
-      buttonText: () => 'needs',
-    }),
+    needs: {
+      button: () => ({
+        payload: 'n',
+        text: 'n',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^n$/,
+      },
+    } as TgAction,
 
     // create
 
-    needsCreate0_manual: Tg.x1_Helpers.create({
-      action: 'needsCreate0_manual',
-      buttonText: () => 'needsCreate0_manual',
-    }),
-
-    needsCreate1_places: Tg.x1_Helpers.create({
-      action: 'needsCreate1_places',
-      buttonText: () => 'needsCreate1_places',
-    }),
-
-    needsCreate2_place: Tg.x1_Helpers.create<Pick<Need, 'placeId'>>({
-      action: 'needsCreate2_place',
-      buttonText: ($) => {
-        return 'needsCreate2_place'
+    needsCreate0_manual: {
+      button: () => ({
+        payload: 'nc0',
+        text: 'nc0',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^nc0$/,
       },
-    }),
+    } as TgAction,
 
-    needsCreate3_maxday: Tg.x1_Helpers.create<Pick<Need, 'placeId' | 'maxday'>>({
-      action: 'needsCreate3_maxday',
-      buttonText: ($) => {
-        return 'needsCreate3_maxday'
+    needsCreate1_places: {
+      button: () => ({
+        payload: 'nc1',
+        text: 'nc1',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^nc1$/,
       },
-    }),
+    } as TgAction,
 
-    needsCreate4_maxprice: Tg.x1_Helpers.create<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>>({
-      action: 'needsCreate4_maxprice',
-      buttonText: ($) => {
-        return 'needsCreate4_maxprice'
+    needsCreate2_place: {
+      button: ($) => ({
+        payload: `nc2:${$.placeId}`,
+        text: `nc2:${$.placeId}`,
+      }),
+      handler: {
+        parser: ([, placeId]) => ({ placeId: +placeId }),
+        pattern: /^nc2:(\d+)$/,
       },
-    }),
+    } as TgAction<Pick<Need, 'placeId'>>,
+
+    needsCreate3_maxday: {
+      button: ($) => ({
+        payload: `nc2:${$.placeId}:${$.maxday}`,
+        text: `nc2:${$.placeId}:${$.maxday}`,
+      }),
+      handler: {
+        parser: ([, placeId, maxday]) => ({ maxday: +maxday, placeId: +placeId }),
+        pattern: /^nc2:(\d+):(\d+)$/,
+      },
+    } as TgAction<Pick<Need, 'placeId' | 'maxday'>>,
+
+    needsCreate4_maxprice: {
+      button: ($) => ({
+        payload: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
+        text: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
+      }),
+      handler: {
+        parser: ([, placeId, maxday, maxprice]) => ({
+          maxday: +maxday,
+          maxprice: +maxprice,
+          placeId: +placeId,
+        }),
+        pattern: /^nc2:(\d+):(\d+):(\d+)$/,
+      },
+    } as TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>>,
 
     // delete
 
-    needsDelete0_manual: Tg.x1_Helpers.create({
-      action: 'needsDelete0_manual',
-      buttonText: () => 'needsDelete0_manual',
-    }),
-
-    needsDelete1_needs: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
-      action: 'needsDelete1_needs',
-      buttonText: ($) => {
-        return 'needsDelete1_needs'
+    needsDelete0_manual: {
+      button: () => ({
+        payload: 'nd0',
+        text: 'nd0',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^nd0$/,
       },
-    }),
+    } as TgAction,
 
-    needsDelete2_need: Tg.x1_Helpers.create<Pick<Need, 'id'>>({
-      action: 'needsDelete2_need',
-      buttonText: ($) => {
-        return 'needsDelete2_need'
+    needsDelete1_needs: {
+      button: ($) => ({
+        payload: `nd1:${$._offset}`,
+        text: `nd1:${$._offset}`,
+      }),
+      handler: {
+        parser: ([, _offset]) => ({ _offset: +_offset }),
+        pattern: /^nd1:(\d+)$/,
       },
-    }),
+    } as TgAction<Pick<YdbArgs, '_offset'>>,
+
+    needsDelete2_need: {
+      button: ($) => ({
+        payload: `nd2:${$.id}`,
+        text: `nd2:${$.id}`,
+      }),
+      handler: {
+        parser: ([, id]) => ({ id: +id }),
+        pattern: /^nd2:(\d+)$/,
+      },
+    } as TgAction<Pick<Need, 'id'>>,
 
     // list
 
-    needsList: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
-      action: 'needsList',
-      buttonText: ($) => {
-        return 'needsList'
+    needsList: {
+      button: ($) => ({
+        payload: `nl:${$._offset}`,
+        text: `nl:${$._offset}`,
+      }),
+      handler: {
+        parser: ([, _offset]) => ({ _offset: +_offset }),
+        pattern: /^nl:(\d+)$/,
       },
-    }),
-
-    //
-    // trips
-    //
-
-    trips: Tg.x1_Helpers.create({
-      action: 'trips',
-      buttonText: () => 'trips',
-    }),
-
-    // create
-
-    tripsCreate0_manual: Tg.x1_Helpers.create({
-      action: 'tripsCreate0_manual',
-      buttonText: () => 'tripsCreate0_manual',
-    }),
-
-    tripsCreate1_capacity: Tg.x1_Helpers.create<Pick<Trip, 'capacity'>>({
-      action: 'tripsCreate1_capacity',
-      buttonText: ($) => {
-        return 'tripsCreate1_capacity'
-      },
-    }),
-
-    tripsCreate2_day: Tg.x1_Helpers.create<Pick<Trip, 'capacity' | 'day'>>({
-      action: 'tripsCreate2_day',
-      buttonText: ($) => {
-        return 'tripsCreate2_day'
-      },
-    }),
-
-    tripsCreate3a_places: Tg.x1_Helpers.create<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>({
-      action: 'tripsCreate3a_places',
-      buttonText: ($) => {
-        return 'tripsCreate3a_places'
-      },
-    }),
-
-    tripsCreate3b_place: Tg.x1_Helpers.create<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>({
-      action: 'tripsCreate3b_place',
-      buttonText: ($) => {
-        return 'tripsCreate3b_place'
-      },
-    }),
-
-    tripsCreate3c_minprice: Tg.x1_Helpers.create<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>({
-      action: 'tripsCreate3c_minprice',
-      buttonText: ($) => {
-        return 'tripsCreate3c_minprice'
-      },
-    }),
-
-    // delete
-
-    tripsDelete0_manual: Tg.x1_Helpers.create({
-      action: 'tripsDelete0_manual',
-      buttonText: () => 'tripsDelete0_manual',
-    }),
-
-    tripsDelete1_trips: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
-      action: 'tripsDelete1_trips',
-      buttonText: ($) => {
-        return 'tripsDelete1_trips'
-      },
-    }),
-
-    tripsDelete2_need: Tg.x1_Helpers.create<Pick<Need, 'id'>>({
-      action: 'tripsDelete2_need',
-      buttonText: ($) => {
-        return 'tripsDelete2_need'
-      },
-    }),
-
-    // list
-
-    tripsList: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
-      action: 'tripsList',
-      buttonText: ($) => {
-        return 'tripsList'
-      },
-    }),
+    } as TgAction<Pick<YdbArgs, '_offset'>>,
   } as const
 
   private static setupIndex(telegraf: Telegraf): void {
     const indexActionResponse: TgActionResponse = {
-      keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
+      keyboard: [[Tg.x2_Actions.needs.button()]],
       message: Tg.x2_Actions.index.button().text,
     }
 
