@@ -1,15 +1,14 @@
 // https://github.com/telegraf/telegraf/blob/v4/docs/examples/wizards/wizard-bot-custom-context-and-session-and-scene-session.ts
 
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable max-lines */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable no-await-in-loop */
 
-import { InlineKeyboardButton, Update, User } from '@grammyjs/types'
+import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
 import { epochFromDate } from '../utils'
-import { Need, Person, Place, Tgid, ydb, YdbArgs } from '../ydb'
+import { Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
 
 //
 
@@ -19,11 +18,6 @@ interface TgActionButton {
   text: string
 }
 
-interface TgActionHandler<TArgs extends object | void = void> {
-  parser: (contextMatch: string[]) => TArgs
-  pattern: RegExp
-}
-
 interface TgActionResponse {
   keyboard: TgActionButton[][]
   message: string
@@ -31,7 +25,10 @@ interface TgActionResponse {
 
 interface TgAction<TArgs extends object | void = void> {
   button: (args: TArgs) => TgActionButton
-  handler: TgActionHandler<TArgs>
+  handler: {
+    parser: (contextMatch: string[]) => TArgs
+    pattern: RegExp
+  }
 }
 
 //
@@ -92,7 +89,7 @@ class Tg {
     },
 
     _toEscapedMarkdown: (message: string): string => {
-      for (const char of '+-()') message = message.replaceAll(char, `\\${char}`)
+      for (const char of '+-()_') message = message.replaceAll(char, `\\${char}`)
       return message
     },
 
@@ -101,10 +98,32 @@ class Tg {
       await context.editMessageReplyMarkup(undefined)
     },
 
+    create: <TArgs extends object | void = void>({
+      action,
+      buttonText,
+    }: {
+      action: string
+      buttonText: (args: TArgs) => string
+    }): TgAction<TArgs> => {
+      interface TgActionButtonPayload<TPayload extends object | unknown = unknown> {
+        action: string
+        payload: TPayload
+      }
+      return {
+        button: (payload) => ({
+          payload: JSON.stringify({ action, payload } as TgActionButtonPayload<TArgs>),
+          text: buttonText(payload),
+        }),
+        handler: {
+          parser: ([payload]) => (JSON.parse(payload) as TgActionButtonPayload<TArgs>).payload,
+          pattern: new RegExp(`^{\\"action\\":\\"${action}\\".*`),
+        },
+      }
+    },
+
     getTgid: (context: Context): Tgid | never => {
-      const user: User | undefined = context.from
-      if (user === undefined) throw new Error('user === undefined')
-      const tgid: Tgid = `${user.id}`
+      const tgid: Tgid | undefined = context.from?.id
+      if (tgid === undefined) throw new Error('tgid === undefined')
       return tgid
     },
 
@@ -139,172 +158,178 @@ class Tg {
     SELECT: `${Tg.x0_Symbols.x0_CHECK} Выбрать`,
   } as const
 
-  private static readonly x2_Actions = (() => {
-    //
-    // index
-    //
-
-    const index: TgAction = {
-      button: () => ({
-        payload: 'index',
-        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Home`,
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^index$/,
-      },
-    }
+  private static readonly x2_Actions = {
+    index: Tg.x1_Helpers.create({
+      action: 'index',
+      buttonText: () => 'index',
+    }),
 
     //
     // needs
     //
 
-    const needs: TgAction = {
-      button: () => ({
-        payload: 'needs',
-        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Needs`,
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^needs$/,
-      },
-    }
+    needs: Tg.x1_Helpers.create({
+      action: 'needs',
+      buttonText: () => 'needs',
+    }),
 
     // create
 
-    const needsCreate0_manual: TgAction = {
-      button: () => ({
-        payload: 'needs:create0',
-        text: Tg.x1_Strings.CREATE,
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^needs:create0$/,
-      },
-    }
+    needsCreate0_manual: Tg.x1_Helpers.create({
+      action: 'needsCreate0_manual',
+      buttonText: () => 'needsCreate0_manual',
+    }),
 
-    const needsCreate1_places: TgAction = {
-      button: () => ({
-        payload: 'needs:create1',
-        text: `${Tg.x1_Strings.GET}`,
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^needs:create1$/,
-      },
-    }
+    needsCreate1_places: Tg.x1_Helpers.create({
+      action: 'needsCreate1_places',
+      buttonText: () => 'needsCreate1_places',
+    }),
 
-    const needsCreate2_place: TgAction<Pick<Need, 'placeId'>> = {
-      button: ($) => ({
-        payload: `needs:create2:placeId=${$.placeId}`,
-        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}`,
-      }),
-      handler: {
-        parser: ([, placeId]) => ({ placeId }),
-        pattern: /^needs:create2:placeId=(\w+)$/,
+    needsCreate2_place: Tg.x1_Helpers.create<Pick<Need, 'placeId'>>({
+      action: 'needsCreate2_place',
+      buttonText: ($) => {
+        return 'needsCreate2_place'
       },
-    }
+    }),
 
-    const needsCreate3_maxday: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
-      button: ($) => ({
-        payload: `needs:create3:placeId=${$.placeId}:maxday=${$.maxday}`,
-        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}`,
-      }),
-      handler: {
-        parser: ([, placeId, maxday]) => ({
-          maxday: +maxday,
-          placeId,
-        }),
-        pattern: /^needs:create3:placeId=(\w+):maxday=(\d+)$/,
+    needsCreate3_maxday: Tg.x1_Helpers.create<Pick<Need, 'placeId' | 'maxday'>>({
+      action: 'needsCreate3_maxday',
+      buttonText: ($) => {
+        return 'needsCreate3_maxday'
       },
-    }
+    }),
 
-    const needsCreate4_maxprice: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
-      button: ($) => ({
-        payload: `needs:create4:placeId=${$.placeId}:maxday=${$.maxday}:maxprice=${$.maxprice}`,
-        text: `${Tg.x1_Strings.SELECT}: ${$.placeId}, ${$.maxday}, ${$.maxprice}`,
-      }),
-      handler: {
-        parser: ([, placeId, maxday, maxprice]) => ({
-          maxday: +maxday,
-          maxprice: +maxprice,
-          placeId,
-        }),
-        pattern: /^needs:create4:placeId=(\w+):maxday=(\d+):maxprice=(\d+)$/,
+    needsCreate4_maxprice: Tg.x1_Helpers.create<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>>({
+      action: 'needsCreate4_maxprice',
+      buttonText: ($) => {
+        return 'needsCreate4_maxprice'
       },
-    }
+    }),
 
     // delete
 
-    const needsDelete0_manual: TgAction = {
-      button: () => ({
-        payload: 'needs:delete0',
-        text: `${Tg.x1_Strings.DELETE}`,
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^needs:delete0$/,
-      },
-    }
+    needsDelete0_manual: Tg.x1_Helpers.create({
+      action: 'needsDelete0_manual',
+      buttonText: () => 'needsDelete0_manual',
+    }),
 
-    const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'>> = {
-      button: ($) => ({
-        payload: `needs:delete1:_offset=${$._offset}`,
-        text: `${Tg.x1_Strings.DELETE}: ${$._offset}`,
-      }),
-      handler: {
-        parser: ([, _offset]) => ({ _offset: +_offset }),
-        pattern: /^needs:delete1:_offset=(\d+)$/,
+    needsDelete1_needs: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
+      action: 'needsDelete1_needs',
+      buttonText: ($) => {
+        return 'needsDelete1_needs'
       },
-    }
+    }),
 
-    const needsDelete2_need: TgAction<Pick<Need, 'id'>> = {
-      button: ($) => ({
-        payload: `needs:delete2:needId=${$.id}`,
-        text: `${Tg.x1_Strings.DELETE}: ${$.id}`,
-      }),
-      handler: {
-        parser: ([, id]) => ({ id }),
-        pattern: /^needs:delete2:needId=(\w+)$/,
+    needsDelete2_need: Tg.x1_Helpers.create<Pick<Need, 'id'>>({
+      action: 'needsDelete2_need',
+      buttonText: ($) => {
+        return 'needsDelete2_need'
       },
-    }
+    }),
 
     // list
 
-    const needsList: TgAction<Pick<YdbArgs, '_offset'>> = {
-      button: ($) => ({
-        payload: `needs:list:_offset=${$._offset}`,
-        text: `${Tg.x1_Strings.GET}: ${$._offset}`,
-      }),
-      handler: {
-        parser: ([, _offset]) => ({ _offset: +_offset }),
-        pattern: /^needs:list:_offset=(\d+)$/,
+    needsList: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
+      action: 'needsList',
+      buttonText: ($) => {
+        return 'needsList'
       },
-    }
+    }),
 
     //
-    //
+    // trips
     //
 
-    return {
-      index,
+    trips: Tg.x1_Helpers.create({
+      action: 'trips',
+      buttonText: () => 'trips',
+    }),
 
-      needs,
-      needsCreate0_manual,
-      needsCreate1_places,
-      needsCreate2_place,
-      needsCreate3_maxday,
-      needsCreate4_maxprice,
-      needsDelete0_manual,
-      needsDelete1_needs,
-      needsDelete2_need,
-      needsList,
-    } as const
-  })()
+    // create
+
+    tripsCreate0_manual: Tg.x1_Helpers.create({
+      action: 'tripsCreate0_manual',
+      buttonText: () => 'tripsCreate0_manual',
+    }),
+
+    tripsCreate1_capacity: Tg.x1_Helpers.create<Pick<Trip, 'capacity'>>({
+      action: 'tripsCreate1_capacity',
+      buttonText: ($) => {
+        return 'tripsCreate1_capacity'
+      },
+    }),
+
+    tripsCreate2_day: Tg.x1_Helpers.create<Pick<Trip, 'capacity' | 'day'>>({
+      action: 'tripsCreate2_day',
+      buttonText: ($) => {
+        return 'tripsCreate2_day'
+      },
+    }),
+
+    tripsCreate3a_places: Tg.x1_Helpers.create<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>({
+      action: 'tripsCreate3a_places',
+      buttonText: ($) => {
+        return 'tripsCreate3a_places'
+      },
+    }),
+
+    tripsCreate3b_place: Tg.x1_Helpers.create<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>({
+      action: 'tripsCreate3b_place',
+      buttonText: ($) => {
+        return 'tripsCreate3b_place'
+      },
+    }),
+
+    tripsCreate3c_minprice: Tg.x1_Helpers.create<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>({
+      action: 'tripsCreate3c_minprice',
+      buttonText: ($) => {
+        return 'tripsCreate3c_minprice'
+      },
+    }),
+
+    // delete
+
+    tripsDelete0_manual: Tg.x1_Helpers.create({
+      action: 'tripsDelete0_manual',
+      buttonText: () => 'tripsDelete0_manual',
+    }),
+
+    tripsDelete1_trips: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
+      action: 'tripsDelete1_trips',
+      buttonText: ($) => {
+        return 'tripsDelete1_trips'
+      },
+    }),
+
+    tripsDelete2_need: Tg.x1_Helpers.create<Pick<Need, 'id'>>({
+      action: 'tripsDelete2_need',
+      buttonText: ($) => {
+        return 'tripsDelete2_need'
+      },
+    }),
+
+    // list
+
+    tripsList: Tg.x1_Helpers.create<Pick<YdbArgs, '_offset'>>({
+      action: 'tripsList',
+      buttonText: ($) => {
+        return 'tripsList'
+      },
+    }),
+  } as const
 
   private static setupIndex(telegraf: Telegraf): void {
     const indexActionResponse: TgActionResponse = {
-      keyboard: [[Tg.x2_Actions.needs.button()]],
+      keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
       message: Tg.x2_Actions.index.button().text,
     }
 
@@ -312,7 +337,7 @@ class Tg {
       const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
       const { first_name: firstname, last_name: lastname, username: tgname } = context.message.from
 
-      const person = await ydb.personsSelectByTgid({ tgid })
+      const person = await ydb.personsSelect({ tgid })
       if (person) await ydb.personsUpdate({ firstname, id: person.id, lastname, tgname })
       else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
 
@@ -450,7 +475,7 @@ class Tg {
         context.match,
       )
 
-      const person: Person | undefined = await ydb.personsSelectByTgid({ tgid })
+      const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
@@ -484,7 +509,7 @@ class Tg {
       const { _offset } = Tg.x2_Actions.needsDelete1_needs.handler.parser(context.match)
 
       const _limit: number = 9
-      const needs: Need[] = await ydb.needsSelectByTgid({ _limit, _offset, tgid })
+      const needs: Need[] = await ydb.needsSelect({ _limit, _offset, tgid })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -532,11 +557,7 @@ class Tg {
         message:
           needs.length === 0
             ? 'Nothing'
-            : needs.reduce(
-                (message, need) =>
-                  `${message}\n${Tg.x1_Markdown.monospace(need.id)}, ${need.placeName}`,
-                '',
-              ),
+            : needs.reduce((message, need) => `${message}\n${need.id}, ${need.placeName}`, ''),
       })
     })
   }

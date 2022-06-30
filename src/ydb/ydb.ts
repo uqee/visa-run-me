@@ -1,8 +1,7 @@
-import { uid } from 'uid'
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
 import { epochFromDate } from '../utils'
-import { Cache, Need, Person, Place } from './ydb-tables'
+import { Cache, Need, Person, Place, Trip, TripPlace } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
 
@@ -16,15 +15,22 @@ class Ydb {
     return value ? `'${value}'` : 'null'
   }
 
+  private static stringify(object: unknown): string {
+    return JSON.stringify(object, (_key, value) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      typeof value === 'bigint' ? value.toString() : value,
+    )
+  }
+
   private accessToken: string | undefined
   private debug: boolean | undefined
   private sdk: Sdk | undefined
 
   private async _execute<T>(request: string): Promise<SdkExecuteDataQueryReturnType<T>> {
     try {
-      if (this.debug) console.log('YDB : request', JSON.stringify(request))
+      if (this.debug) console.log('YDB : request', Ydb.stringify(request))
       const response = await this.sdk!.executeDataQuery(request)
-      if (this.debug) console.log('YDB : response', JSON.stringify(response))
+      if (this.debug) console.log('YDB : response', Ydb.stringify(response))
       return response as SdkExecuteDataQueryReturnType<T>
     } catch (error) {
       if (this.debug) console.log('YDB : error', error)
@@ -50,9 +56,10 @@ class Ydb {
   ): Promise<void> {
     const { key } = args
     // prettier-ignore
-    await this._execute(
-      `delete from caches where key == '${key}'`,
-    )
+    await this._execute(`
+      delete from caches
+      where key == '${key}'
+    `)
   }
 
   public async cachesReplace(
@@ -72,9 +79,11 @@ class Ydb {
     const { key } = args
     // prettier-ignore
     return (
-      await this._execute<Cache>(
-        `select * from caches where key == '${key}'`,
-      )
+      await this._execute<Cache>(`
+        select *
+        from caches
+        where key == '${key}'
+      `)
     )[0]?.[0]
   }
 
@@ -94,48 +103,31 @@ class Ydb {
 
   public async needsInsert(
     args: Pick<Need, 'maxday' | 'maxprice' | 'personId' | 'placeId' | 'tgid'>, //
-  ): Promise<Place['id']> {
+  ): Promise<void> {
     const { maxday, maxprice, personId, placeId, tgid } = args
-    const id: string = uid()
     // prettier-ignore
     await this._execute(`
+      $id = select cast((max(id) ?? 0) + 1 as uint32) from needs with xlock;
       insert into needs (
         maxday, maxprice, personId, placeId,
         created, deleted, id, tgid
       ) values (
-        ${maxday}, ${maxprice}, '${personId}', '${placeId}',
-        ${epochFromDate()}, null, '${id}', '${tgid}'
+        ${maxday}, ${maxprice}, ${personId}, ${placeId},
+        ${epochFromDate()}, null, $id, ${tgid}
       )
     `)
-    return id
   }
 
   public async needsSelect(
-    args: YdbArgs, //
+    args: YdbArgs & Partial<Pick<Need, 'tgid'>>, //
   ): Promise<Array<Need & { placeName: Place['name'] }>> {
-    const { _limit, _offset } = args
-    // prettier-ignore
-    return (
-      await this._execute<Need & { placeName: Place['name'] }>(`
-        select n.*, p.name as placeName,
-        from needs as n left join places as p on n.placeId = p.id
-        where n.deleted is null
-        order by created desc
-        limit ${_limit} offset ${_offset}
-      `)
-    )[0]
-  }
-
-  public async needsSelectByTgid(
-    args: YdbArgs & Pick<Need, 'tgid'>, //
-  ): Promise<Need[]> {
     const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Need>(`
-        select *
-        from needs
-        where tgid == '${tgid}' and deleted is null
+      await this._execute<Need & { placeName: Place['name'] }>(`
+        select n.*, p.name as placeName
+        from needs as n left join places as p on n.placeId = p.id
+        where n.deleted is null ${tgid ? `and n.tgid == ${tgid}` : ''}
         order by created desc
         limit ${_limit} offset ${_offset}
       `)
@@ -146,32 +138,33 @@ class Ydb {
 
   public async personsInsert(
     args: Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
-  ): Promise<Person['id']> {
+  ): Promise<void> {
     const { firstname, lastname, tgid, tgname } = args
-    const id: string = uid()
     // prettier-ignore
     await this._execute(`
-        insert into persons (
-          firstname, lastname, tgname,
-          created, deleted, id, tgid
-        ) values (
-          '${firstname}', ${Ydb.str(lastname)}, '${tgid}', ${Ydb.str(tgname)},
-          ${epochFromDate()}, null, '${id}', '${id}'
-        )
-      `)
-    return id
+      $id = select cast((max(id) ?? 0) + 1 as uint32) from persons with xlock;
+      insert into persons (
+        firstname, lastname, tgname,
+        created, deleted, id, tgid
+      ) values (
+        '${firstname}', ${Ydb.str(lastname)}, ${Ydb.str(tgname)},
+        ${epochFromDate()}, null, $id, ${tgid}
+      )
+    `)
   }
 
-  public async personsSelectByTgid(
+  public async personsSelect(
     args: Pick<Person, 'tgid'>, //
   ): Promise<Person | undefined> {
     const { tgid } = args
     // prettier-ignore
     return (
-        await this._execute<Person>(
-          `select * from persons where tgid == '${tgid}'`,
-        )
-      )[0]?.[0]
+      await this._execute<Person>(`
+        select *
+        from persons
+        where tgid == ${tgid}
+      `)
+    )[0]?.[0]
   }
 
   public async personsUpdate(
@@ -180,15 +173,15 @@ class Ydb {
     const { id, firstname, lastname, tgname } = args
     // prettier-ignore
     await this._execute(`
-        update
-          persons
-        set
-          firstname = '${firstname}',
-          lastname = ${Ydb.str(lastname)},
-          tgname = ${Ydb.str(tgname)}
-        where
-          id == '${id}'
-      `)
+      update
+        persons
+      set
+        firstname = '${firstname}',
+        lastname = ${Ydb.str(lastname)},
+        tgname = ${Ydb.str(tgname)}
+      where
+        id == ${id}
+    `)
   }
 
   //
@@ -202,7 +195,91 @@ class Ydb {
       await this._execute<Place>(`
         select *
         from places
-        order by name
+        order by id
+        limit ${_limit} offset ${_offset}
+      `)
+    )[0]
+  }
+
+  //
+
+  public async tripsDelete(
+    args: Pick<Trip, 'id'>, //
+  ): Promise<void> {
+    const { id } = args
+    // prettier-ignore
+    await this._execute(`
+      update trips
+      set deleted = ${epochFromDate()}
+      where id == ${id}
+    `)
+  }
+
+  public async tripsInsert(
+    args1: Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'>, //
+    args2: Array<Pick<TripPlace, 'minprice' | 'placeId'>>,
+  ): Promise<void> {
+    if (args2.length === 0) throw new Error('args2.length === 0')
+
+    const { capacity, day, personId, tgid } = args1
+    const created: Trip['created'] = epochFromDate()
+
+    // prettier-ignore
+    await this._execute(`
+      $tripId = select cast((max(id) ?? 0) + 1 as uint32) from trips with xlock;
+      $tripPlaceId = select cast((max(id) ?? 0) + 1 as uint32) from tripPlaces with xlock;
+
+      insert into trips (
+        capacity, day, personId,
+        created, deleted, id, tgid
+      ) values (
+        ${capacity}, ${day}, ${personId},
+        ${created}, null, $tripId, ${tgid}
+      );
+
+      insert into tripPlaces (
+        minprice, placeId, tripId,
+        created, deleted, id, tgid
+      ) values ${
+        args2
+          .map(({ minprice, placeId }, index) =>
+            `(
+              ${minprice}, ${placeId}, $tripId,
+              ${created}, null, cast($tripPlaceId+${index} as uint32), ${tgid}
+            )`,
+          )
+          .join(',')
+      };
+    `)
+  }
+
+  public async tripsSelect(
+    args: YdbArgs & Partial<Pick<Trip, 'tgid'>>, //
+  ): Promise<
+    Array<
+      Trip & {
+        tripPlaceName: Place['name']
+        tripPlaceMinprice: TripPlace['minprice']
+      }
+    >
+  > {
+    const { _limit, _offset, tgid } = args
+    // prettier-ignore
+    return (
+      await this._execute<Trip & {
+        tripPlaceName: Place['name']
+        tripPlaceMinprice: TripPlace['minprice']
+      }>(`
+        select
+          t.*,
+          p.name as tripPlaceName,
+          tp.minprice as tripPlaceMinprice
+        from
+          trips as t
+          left join tripPlaces as tp on tp.tripId = t.id
+          left join places as p on tp.placeId = p.id
+        where t.deleted is null ${tgid ? `and t.tgid == ${tgid}` : ''}
+        order by created desc
         limit ${_limit} offset ${_offset}
       `)
     )[0]

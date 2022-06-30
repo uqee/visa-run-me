@@ -1,6 +1,6 @@
 type Epoch = number // timestamp, precision 1 second
-type Id = string // uid, 11 chars
-export type Tgid = string
+type Id = number
+export type Tgid = number // https://core.telegram.org/bots/api#user
 
 interface Table {
   created: Epoch

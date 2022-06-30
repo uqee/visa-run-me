@@ -20,13 +20,13 @@ create table caches (
 create table needs (
   maxday uint32,
   maxprice uint8,
-  personId string,
-  placeId string,
+  personId uint32,
+  placeId uint32,
 
   created uint32,
   deleted uint32,
-  id string,
-  tgid string,
+  id uint32,
+  tgid uint64,
   index needs_tgid_idx global on (tgid),
   primary key (id)
 );
@@ -34,13 +34,13 @@ create table needs (
 create table persons (
   firstname utf8,
   lastname utf8,
-  -- tgid string,
+  -- tgid uint64,
   tgname string,
 
   created uint32,
   deleted uint32,
-  id string,
-  tgid string,
+  id uint32,
+  tgid uint64,
   index persons_tgid_idx global on (tgid),
   primary key (id)
 );
@@ -50,8 +50,8 @@ create table places (
 
   created uint32,
   deleted uint32,
-  id string,
-  tgid string,
+  id uint32,
+  tgid uint64,
   index places_tgid_idx global on (tgid),
   primary key (id)
 );
@@ -59,25 +59,25 @@ create table places (
 create table trips (
   capacity uint8,
   day uint32,
-  personId string,
+  personId uint32,
 
   created uint32,
   deleted uint32,
-  id string,
-  tgid string,
+  id uint32,
+  tgid uint64,
   index trips_tgid_idx global on (tgid),
   primary key (id)
 );
 
 create table tripPlaces (
   minprice uint8,
-  placeId string,
-  tripId string,
+  placeId uint32,
+  tripId uint32,
 
   created uint32,
   deleted uint32,
-  id string,
-  tgid string,
+  id uint32,
+  tgid uint64,
   index tripPlaces_tgid_idx global on (tgid),
   primary key (id)
 );
@@ -98,25 +98,25 @@ commit;
 replace into persons
   (firstname, lastname, tgname, created, deleted, id, tgid)
 values
-  ('Denis', 'Zhbankov', 'denis_zhbankov', 1650900000, null, '4e583a933d9', '115469675');
+  ('Denis', 'Zhbankov', 'denis_zhbankov', 1650900000, null, 0, 115469675);
 
 replace into places
   (name, created, deleted, id, tgid)
 values
-  ('Bar',          1650900000, null, 'no5va8kiiq0', '115469675'),
-  ('Berane',       1650900000, null, 'sdu4cz2s6w4', '115469675'),
-  ('Bijelo Polje', 1650900000, null, 'vvajmv2kn7s', '115469675'),
-  ('Budva',        1650900000, null, 'aonbpsekpi1', '115469675'),
-  ('Cetinje',      1650900000, null, 'sor8du5ww88', '115469675'),
-  ('Herceg Novi',  1650900000, null, 'w87ms7tlgt1', '115469675'),
-  ('Kotor',        1650900000, null, '49ap5tab5vl', '115469675'),
-  ('Nikšić',       1650900000, null, 'x06f2x4vw5g', '115469675'),
-  ('Petrovac',     1650900000, null, 'ojhzb7hrmci', '115469675'),
-  ('Pljevlja',     1650900000, null, 'by4lcxa24qn', '115469675'),
-  ('Podgorica',    1650900000, null, 'omkz5u9ssz2', '115469675'),
-  ('Rožaje',       1650900000, null, '0ann5o0onrz', '115469675'),
-  ('Sitnica',      1650900000, null, 'i27gd9iql29', '115469675'),
-  ('Tivat',        1650900000, null, 's2zpnylzn5x', '115469675'),
-  ('Ulcinj',       1650900000, null, 'd3lvr56s0o8', '115469675');
+  ('Bar',          1650900000, null,  0, 115469675),
+  ('Berane',       1650900000, null,  1, 115469675),
+  ('Bijelo Polje', 1650900000, null,  2, 115469675),
+  ('Budva',        1650900000, null,  3, 115469675),
+  ('Cetinje',      1650900000, null,  4, 115469675),
+  ('Herceg Novi',  1650900000, null,  5, 115469675),
+  ('Kotor',        1650900000, null,  6, 115469675),
+  ('Nikšić',       1650900000, null,  7, 115469675),
+  ('Petrovac',     1650900000, null,  8, 115469675),
+  ('Pljevlja',     1650900000, null,  9, 115469675),
+  ('Podgorica',    1650900000, null, 10, 115469675),
+  ('Rožaje',       1650900000, null, 11, 115469675),
+  ('Sitnica',      1650900000, null, 12, 115469675),
+  ('Tivat',        1650900000, null, 13, 115469675),
+  ('Ulcinj',       1650900000, null, 14, 115469675);
 
 commit;
