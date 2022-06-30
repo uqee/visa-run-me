@@ -8,7 +8,7 @@ import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
 import { epochFromDate } from '../utils'
-import { Need, Person, Place, Tgid, ydb, YdbArgs } from '../ydb'
+import { Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
 
 //
 
@@ -164,17 +164,6 @@ class Tg {
 
     // create
 
-    needsCreate0_manual: {
-      button: () => ({
-        payload: 'nc0',
-        text: 'nc0',
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^nc0$/,
-      },
-    } as TgAction,
-
     needsCreate1_places: {
       button: () => ({
         payload: 'nc1',
@@ -186,7 +175,7 @@ class Tg {
       },
     } as TgAction,
 
-    needsCreate2_place: {
+    needsCreate2_maxdays: {
       button: ($) => ({
         payload: `nc2:${$.placeId}`,
         text: `nc2:${$.placeId}`,
@@ -197,7 +186,7 @@ class Tg {
       },
     } as TgAction<Pick<Need, 'placeId'>>,
 
-    needsCreate3_maxday: {
+    needsCreate3_maxprices: {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}`,
         text: `nc2:${$.placeId}:${$.maxday}`,
@@ -208,7 +197,7 @@ class Tg {
       },
     } as TgAction<Pick<Need, 'placeId' | 'maxday'>>,
 
-    needsCreate4_maxprice: {
+    needsCreate4_commit: {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
         text: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
@@ -225,17 +214,6 @@ class Tg {
 
     // delete
 
-    needsDelete0_manual: {
-      button: () => ({
-        payload: 'nd0',
-        text: 'nd0',
-      }),
-      handler: {
-        parser: () => undefined,
-        pattern: /^nd0$/,
-      },
-    } as TgAction,
-
     needsDelete1_needs: {
       button: ($) => ({
         payload: `nd1:${$._offset}`,
@@ -247,7 +225,7 @@ class Tg {
       },
     } as TgAction<Pick<YdbArgs, '_offset'>>,
 
-    needsDelete2_need: {
+    needsDelete2_commit: {
       button: ($) => ({
         payload: `nd2:${$.id}`,
         text: `nd2:${$.id}`,
@@ -268,6 +246,157 @@ class Tg {
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^nl:(\d+)$/,
+      },
+    } as TgAction<Pick<YdbArgs, '_offset'>>,
+
+    //
+    // trips
+    //
+
+    trips: {
+      button: () => ({
+        payload: 't',
+        text: 't',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^t$/,
+      },
+    } as TgAction,
+
+    // create
+
+    tripsCreate1_capacities: {
+      button: () => ({
+        payload: 'tc1',
+        text: 'tc1',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^tc1$/,
+      },
+    } as TgAction,
+
+    tripsCreate2_days: {
+      button: ($) => ({
+        payload: `tc2:${$.capacity}`,
+        text: `tc2:${$.capacity}`,
+      }),
+      handler: {
+        parser: ([, capacity]) => ({ capacity: +capacity }),
+        pattern: /^tc2:(\d+)$/,
+      },
+    } as TgAction<Pick<Trip, 'capacity'>>,
+
+    tripsCreate3_places: {
+      button: ($) => ({
+        payload: `tc3:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
+          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
+          .join('')}`,
+        text: `tc3:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+      }),
+      handler: {
+        parser: ([, capacity, day, tripPlaces]) => ({
+          trip: { capacity: +capacity, day: +day },
+          tripPlaces: tripPlaces
+            .split(':')
+            .slice(1)
+            .map((tripPlace) => {
+              const [placeId, minprice] = tripPlace.split(',')
+              return { minprice: +minprice, placeId: +placeId }
+            }),
+        }),
+        pattern: /^tc3:(\d+):(\d+)(:\d+,\d+)*$/,
+      },
+    } as TgAction<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>,
+
+    tripsCreate4_minprices: {
+      button: ($) => ({
+        payload: `tc4:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
+          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
+          .join('')}`,
+        text: `tc4:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+      }),
+      handler: {
+        parser: ([, capacity, day, tripPlaces]) => ({
+          trip: { capacity: +capacity, day: +day },
+          tripPlaces: tripPlaces
+            .split(':')
+            .slice(1)
+            .map((tripPlace) => {
+              const [placeId, minprice] = tripPlace.split(',')
+              return { minprice: +minprice, placeId: +placeId }
+            }),
+        }),
+        pattern: /^tc4:(\d+):(\d+)(:\d+,\d+)*$/,
+      },
+    } as TgAction<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>,
+
+    tripsCreate5_commit: {
+      button: ($) => ({
+        payload: `tc5:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
+          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
+          .join('')}`,
+        text: `tc5:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+      }),
+      handler: {
+        parser: ([, capacity, day, tripPlaces]) => ({
+          trip: { capacity: +capacity, day: +day },
+          tripPlaces: tripPlaces
+            .split(':')
+            .slice(1)
+            .map((tripPlace) => {
+              const [placeId, minprice] = tripPlace.split(',')
+              return { minprice: +minprice, placeId: +placeId }
+            }),
+        }),
+        pattern: /^tc5:(\d+):(\d+)(:\d+,\d+)*$/,
+      },
+    } as TgAction<{
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }>,
+
+    // delete
+
+    tripsDelete1_trips: {
+      button: ($) => ({
+        payload: `td1:${$._offset}`,
+        text: `td1:${$._offset}`,
+      }),
+      handler: {
+        parser: ([, _offset]) => ({ _offset: +_offset }),
+        pattern: /^td1:(\d+)$/,
+      },
+    } as TgAction<Pick<YdbArgs, '_offset'>>,
+
+    tripsDelete2_commit: {
+      button: ($) => ({
+        payload: `td2:${$.id}`,
+        text: `td2:${$.id}`,
+      }),
+      handler: {
+        parser: ([, id]) => ({ id: +id }),
+        pattern: /^td2:(\d+)$/,
+      },
+    } as TgAction<Pick<Trip, 'id'>>,
+
+    // list
+
+    tripsList: {
+      button: ($) => ({
+        payload: `tl:${$._offset}`,
+        text: `tl:${$._offset}`,
+      }),
+      handler: {
+        parser: ([, _offset]) => ({ _offset: +_offset }),
+        pattern: /^tl:(\d+)$/,
       },
     } as TgAction<Pick<YdbArgs, '_offset'>>,
   } as const
@@ -320,8 +449,8 @@ class Tg {
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           [
-            Tg.x2_Actions.needsCreate0_manual.button(), //
-            Tg.x2_Actions.needsDelete0_manual.button(),
+            Tg.x2_Actions.needsCreate1_places.button(), //
+            Tg.x2_Actions.needsDelete1_needs.button({ _offset: 0 }),
           ],
           [Tg.x2_Actions.needsList.button({ _offset: 0 })],
           [Tg.x2_Actions.index.button()],
@@ -331,17 +460,6 @@ class Tg {
     })
 
     // create
-
-    telegraf.action(Tg.x2_Actions.needsCreate0_manual.handler.pattern, async (context) => {
-      await Tg.x1_Helpers.accept(context)
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          [Tg.x2_Actions.needsCreate1_places.button()], //
-          [Tg.x2_Actions.needs.button()],
-        ],
-        message: Tg.x2_Actions.needsCreate0_manual.button().text,
-      })
-    })
 
     telegraf.action(Tg.x2_Actions.needsCreate1_places.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
@@ -353,7 +471,7 @@ class Tg {
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           ...places.map((place) => [
-            Tg.x2_Actions.needsCreate2_place.button({ placeId: place.id }),
+            Tg.x2_Actions.needsCreate2_maxdays.button({ placeId: place.id }),
           ]),
           [Tg.x2_Actions.needs.button()],
         ],
@@ -361,12 +479,12 @@ class Tg {
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate2_place.handler.pattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.needsCreate2_maxdays.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
       const day: number = 24 * 60 * 60
       const epoch: number = epochFromDate()
-      const { placeId } = Tg.x2_Actions.needsCreate2_place.handler.parser(context.match)
+      const { placeId } = Tg.x2_Actions.needsCreate2_maxdays.handler.parser(context.match)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -375,7 +493,7 @@ class Tg {
             [6, 7, 8, 9, 10],
           ].map((maxdays: number[]): TgActionButton[] => {
             return maxdays.map((maxday: number): TgActionButton => {
-              return Tg.x2_Actions.needsCreate3_maxday.button({
+              return Tg.x2_Actions.needsCreate3_maxprices.button({
                 maxday: epoch + maxday * day,
                 placeId,
               })
@@ -383,14 +501,14 @@ class Tg {
           }),
           [Tg.x2_Actions.needs.button()],
         ],
-        message: Tg.x2_Actions.needsCreate2_place.button({ placeId }).text,
+        message: Tg.x2_Actions.needsCreate2_maxdays.button({ placeId }).text,
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate3_maxday.handler.pattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.needsCreate3_maxprices.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
-      const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxday.handler.parser(context.match)
+      const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxprices.handler.parser(context.match)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -399,7 +517,7 @@ class Tg {
             [30, 35, 40, 45, 50],
           ].map((maxprices: number[]): TgActionButton[] => {
             return maxprices.map((maxprice: number): TgActionButton => {
-              return Tg.x2_Actions.needsCreate4_maxprice.button({
+              return Tg.x2_Actions.needsCreate4_commit.button({
                 maxday,
                 maxprice,
                 placeId,
@@ -408,15 +526,15 @@ class Tg {
           }),
           [Tg.x2_Actions.needs.button()],
         ],
-        message: Tg.x2_Actions.needsCreate3_maxday.button({ maxday, placeId }).text,
+        message: Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId }).text,
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsCreate4_maxprice.handler.pattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.needsCreate4_commit.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
       const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
-      const { maxday, maxprice, placeId } = Tg.x2_Actions.needsCreate4_maxprice.handler.parser(
+      const { maxday, maxprice, placeId } = Tg.x2_Actions.needsCreate4_commit.handler.parser(
         context.match,
       )
 
@@ -426,7 +544,7 @@ class Tg {
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsCreate4_maxprice.button({
+        message: Tg.x2_Actions.needsCreate4_commit.button({
           maxday,
           maxprice,
           placeId,
@@ -435,17 +553,6 @@ class Tg {
     })
 
     // delete
-
-    telegraf.action(Tg.x2_Actions.needsDelete0_manual.handler.pattern, async (context) => {
-      await Tg.x1_Helpers.accept(context)
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          [Tg.x2_Actions.needsDelete1_needs.button({ _offset: 0 })],
-          [Tg.x2_Actions.needs.button()],
-        ],
-        message: Tg.x2_Actions.needsDelete1_needs.button({ _offset: 0 }).text,
-      })
-    })
 
     telegraf.action(Tg.x2_Actions.needsDelete1_needs.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
@@ -458,7 +565,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
-          ...needs.map((need) => [Tg.x2_Actions.needsDelete2_need.button({ id: need.id })]),
+          ...needs.map((need) => [Tg.x2_Actions.needsDelete2_commit.button({ id: need.id })]),
           [
             Tg.x2_Actions.needsDelete1_needs.button({ _offset: Math.max(_offset - _limit, 0) }),
             Tg.x2_Actions.needsDelete1_needs.button({ _offset: _offset + _limit }),
@@ -469,15 +576,15 @@ class Tg {
       })
     })
 
-    telegraf.action(Tg.x2_Actions.needsDelete2_need.handler.pattern, async (context) => {
+    telegraf.action(Tg.x2_Actions.needsDelete2_commit.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
-      const { id } = Tg.x2_Actions.needsDelete2_need.handler.parser(context.match)
+      const { id } = Tg.x2_Actions.needsDelete2_commit.handler.parser(context.match)
       await ydb.needsDelete({ id })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsDelete2_need.button({ id }).text,
+        message: Tg.x2_Actions.needsDelete2_commit.button({ id }).text,
       })
     })
 
@@ -507,6 +614,201 @@ class Tg {
     })
   }
 
+  private static setupTrips(telegraf: Telegraf): void {
+    //
+
+    telegraf.action(Tg.x2_Actions.trips.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          [
+            Tg.x2_Actions.tripsCreate1_capacities.button(), //
+            Tg.x2_Actions.tripsDelete1_trips.button({ _offset: 0 }),
+          ],
+          [Tg.x2_Actions.tripsList.button({ _offset: 0 })],
+          [Tg.x2_Actions.index.button()],
+        ],
+        message: Tg.x2_Actions.trips.button().text,
+      })
+    })
+
+    // create
+
+    telegraf.action(Tg.x2_Actions.tripsCreate1_capacities.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          ...[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+          ].map((capacities: number[]): TgActionButton[] => {
+            return capacities.map((capacity: number): TgActionButton => {
+              return Tg.x2_Actions.tripsCreate2_days.button({ capacity })
+            })
+          }),
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message: Tg.x2_Actions.tripsCreate1_capacities.button().text,
+      })
+    })
+
+    telegraf.action(Tg.x2_Actions.tripsCreate2_days.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const { capacity } = Tg.x2_Actions.tripsCreate2_days.handler.parser(context.match)
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          ...[
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+          ].map((days: number[]): TgActionButton[] => {
+            return days.map((day: number): TgActionButton => {
+              return Tg.x2_Actions.tripsCreate3_places.button({
+                trip: { capacity, day },
+                tripPlaces: [],
+              })
+            })
+          }),
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message: Tg.x2_Actions.tripsCreate2_days.button({ capacity }).text,
+      })
+    })
+
+    telegraf.action(Tg.x2_Actions.tripsCreate3_places.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const { trip, tripPlaces } = Tg.x2_Actions.tripsCreate3_places.handler.parser(context.match)
+
+      const _limit: number = 32
+      const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
+      if (places.length === _limit) console.warn('places.length === _limit')
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          ...places.map(({ id: placeId }) => [
+            Tg.x2_Actions.tripsCreate4_minprices.button({
+              trip,
+              tripPlaces: [...tripPlaces, { minprice: Infinity, placeId }],
+            }),
+          ]),
+          [Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })],
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message: Tg.x2_Actions.tripsCreate3_places.button({ trip, tripPlaces }).text,
+      })
+    })
+
+    telegraf.action(Tg.x2_Actions.tripsCreate4_minprices.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const { trip, tripPlaces } = Tg.x2_Actions.tripsCreate4_minprices.handler.parser(
+        context.match,
+      )
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          ...[
+            [10, 15, 20],
+            [25, 30, 35],
+            [40, 45, 50],
+          ].map((minprices: number[]): TgActionButton[] => {
+            return minprices.map((minprice: number): TgActionButton => {
+              const lastTripPlace = tripPlaces.pop()
+              if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
+              return Tg.x2_Actions.tripsCreate5_commit.button({
+                trip,
+                tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
+              })
+            })
+          }),
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message: Tg.x2_Actions.tripsCreate4_minprices.button({ trip, tripPlaces }).text,
+      })
+    })
+
+    telegraf.action(Tg.x2_Actions.tripsCreate5_commit.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
+      const { trip, tripPlaces } = Tg.x2_Actions.tripsCreate5_commit.handler.parser(context.match)
+
+      const person: Person | undefined = await ydb.personsSelect({ tgid })
+      if (person === undefined) throw new Error('person === undefined')
+
+      await ydb.tripsInsert({ trip: { ...trip, personId: person.id, tgid }, tripPlaces })
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [[Tg.x2_Actions.trips.button()]],
+        message: Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces }).text,
+      })
+    })
+
+    // delete
+
+    telegraf.action(Tg.x2_Actions.tripsDelete1_trips.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const tgid: Tgid = Tg.x1_Helpers.getTgid(context)
+      const { _offset } = Tg.x2_Actions.tripsDelete1_trips.handler.parser(context.match)
+
+      const _limit: number = 9
+      const trips: Trip[] = await ydb.tripsSelect({ _limit, _offset, tgid })
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          ...trips.map((need) => [Tg.x2_Actions.tripsDelete2_commit.button({ id: need.id })]),
+          [
+            Tg.x2_Actions.tripsDelete1_trips.button({ _offset: Math.max(_offset - _limit, 0) }),
+            Tg.x2_Actions.tripsDelete1_trips.button({ _offset: _offset + _limit }),
+          ],
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message: Tg.x2_Actions.tripsDelete1_trips.button({ _offset }).text,
+      })
+    })
+
+    telegraf.action(Tg.x2_Actions.tripsDelete2_commit.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const { id } = Tg.x2_Actions.tripsDelete2_commit.handler.parser(context.match)
+      await ydb.tripsDelete({ id })
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [[Tg.x2_Actions.trips.button()]],
+        message: Tg.x2_Actions.tripsDelete2_commit.button({ id }).text,
+      })
+    })
+
+    // list
+
+    telegraf.action(Tg.x2_Actions.tripsList.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
+
+      const { _offset } = Tg.x2_Actions.tripsList.handler.parser(context.match)
+
+      const _limit: number = 9
+      const trips = await ydb.tripsSelect({ _limit, _offset })
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [
+          [
+            Tg.x2_Actions.tripsList.button({ _offset: Math.max(_offset - _limit, 0) }),
+            Tg.x2_Actions.tripsList.button({ _offset: _offset + _limit }),
+          ],
+          [Tg.x2_Actions.trips.button()],
+        ],
+        message:
+          trips.length === 0
+            ? 'Nothing'
+            : trips.reduce((message, trip) => `${message}\n${trip.id}, ${trip.tripPlaceName}`, ''),
+      })
+    })
+  }
+
   private debug: boolean | undefined
   private telegraf: Telegraf | undefined
 
@@ -524,6 +826,8 @@ class Tg {
     })
 
     Tg.setupNeeds(telegraf)
+    Tg.setupTrips(telegraf)
+
     Tg.setupIndex(telegraf)
 
     telegraf.catch((error) => {

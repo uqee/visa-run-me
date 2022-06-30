@@ -215,13 +215,15 @@ class Ydb {
     `)
   }
 
-  public async tripsInsert(
-    args1: Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'>, //
-    args2: Array<Pick<TripPlace, 'minprice' | 'placeId'>>,
-  ): Promise<void> {
-    if (args2.length === 0) throw new Error('args2.length === 0')
-
-    const { capacity, day, personId, tgid } = args1
+  public async tripsInsert(args: {
+    trip: Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'> //
+    tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+  }): Promise<void> {
+    const {
+      trip: { capacity, day, personId, tgid },
+      tripPlaces,
+    } = args
+    if (tripPlaces.length === 0) throw new Error('tripPlaces.length === 0')
     const created: Trip['created'] = epochFromDate()
 
     // prettier-ignore
@@ -241,7 +243,7 @@ class Ydb {
         minprice, placeId, tripId,
         created, deleted, id, tgid
       ) values ${
-        args2
+        tripPlaces
           .map(({ minprice, placeId }, index) =>
             `(
               ${minprice}, ${placeId}, $tripId,
