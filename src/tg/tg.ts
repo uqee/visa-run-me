@@ -7,7 +7,6 @@
 import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { epochFromDate } from '../utils'
 import { Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
 
 //
@@ -142,8 +141,9 @@ class Tg {
     SELECT: `${Tg.x0_Symbols.x0_CHECK} Выбрать`,
   } as const
 
-  private static readonly x2_Actions = {
-    index: {
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  private static readonly x2_Actions = (() => {
+    const index: TgAction = {
       button: () => ({
         payload: 'i',
         text: 'i',
@@ -152,13 +152,13 @@ class Tg {
         parser: () => undefined,
         pattern: /^i$/,
       },
-    } as TgAction,
+    }
 
     //
     // needs
     //
 
-    needs: {
+    const needs: TgAction = {
       button: () => ({
         payload: 'n',
         text: 'n',
@@ -167,11 +167,11 @@ class Tg {
         parser: () => undefined,
         pattern: /^n$/,
       },
-    } as TgAction,
+    }
 
     // create
 
-    needsCreate1_places: {
+    const needsCreate1_places: TgAction = {
       button: () => ({
         payload: 'nc1',
         text: 'nc1',
@@ -180,9 +180,9 @@ class Tg {
         parser: () => undefined,
         pattern: /^nc1$/,
       },
-    } as TgAction,
+    }
 
-    needsCreate2_maxdays: {
+    const needsCreate2_maxdays: TgAction<Pick<Need, 'placeId'>> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}`,
         text: `nc2:${$.placeId}`,
@@ -191,9 +191,9 @@ class Tg {
         parser: ([, placeId]) => ({ placeId: +placeId }),
         pattern: /^nc2:(\d+)$/,
       },
-    } as TgAction<Pick<Need, 'placeId'>>,
+    }
 
-    needsCreate3_maxprices: {
+    const needsCreate3_maxprices: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}`,
         text: `nc2:${$.placeId}:${$.maxday}`,
@@ -202,9 +202,9 @@ class Tg {
         parser: ([, placeId, maxday]) => ({ maxday: +maxday, placeId: +placeId }),
         pattern: /^nc2:(\d+):(\d+)$/,
       },
-    } as TgAction<Pick<Need, 'placeId' | 'maxday'>>,
+    }
 
-    needsCreate4_commit: {
+    const needsCreate4_commit: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
         text: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
@@ -217,11 +217,11 @@ class Tg {
         }),
         pattern: /^nc2:(\d+):(\d+):(\d+)$/,
       },
-    } as TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>>,
+    }
 
     // delete
 
-    needsDelete1_needs: {
+    const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'>> = {
       button: ($) => ({
         payload: `nd1:${$._offset}`,
         text: `nd1:${$._offset}`,
@@ -230,9 +230,9 @@ class Tg {
         parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^nd1:(\d+)$/,
       },
-    } as TgAction<Pick<YdbArgs, '_offset'>>,
+    }
 
-    needsDelete2_commit: {
+    const needsDelete2_commit: TgAction<Pick<Need, 'id'>> = {
       button: ($) => ({
         payload: `nd2:${$.id}`,
         text: `nd2:${$.id}`,
@@ -241,11 +241,11 @@ class Tg {
         parser: ([, id]) => ({ id: +id }),
         pattern: /^nd2:(\d+)$/,
       },
-    } as TgAction<Pick<Need, 'id'>>,
+    }
 
     // list
 
-    needsList: {
+    const needsList: TgAction<Pick<YdbArgs, '_offset'>> = {
       button: ($) => ({
         payload: `nl:${$._offset}`,
         text: `nl:${$._offset}`,
@@ -254,13 +254,13 @@ class Tg {
         parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^nl:(\d+)$/,
       },
-    } as TgAction<Pick<YdbArgs, '_offset'>>,
+    }
 
     //
     // trips
     //
 
-    trips: {
+    const trips: TgAction = {
       button: () => ({
         payload: 't',
         text: 't',
@@ -269,11 +269,42 @@ class Tg {
         parser: () => undefined,
         pattern: /^t$/,
       },
-    } as TgAction,
+    }
 
     // create
 
-    tripsCreate1_capacities: {
+    interface _tripsCreate345_payload {
+      trip: Pick<Trip, 'capacity' | 'day'>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
+    }
+
+    const _tripsCreate345_buttonPayload = (step: string, $: _tripsCreate345_payload): string => {
+      return `${step}:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
+        .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
+        .join('')}`
+    }
+
+    const _tripsCreate345_handlerParser = (match: string[]): _tripsCreate345_payload => {
+      const [, capacity, day, tripPlaces] = match
+      return {
+        trip: { capacity: +capacity, day: +day },
+        tripPlaces: tripPlaces
+          ? tripPlaces
+              .split(':')
+              .slice(1)
+              .map((tripPlace) => {
+                const [placeId, minprice] = tripPlace.split(',')
+                return { minprice: +minprice, placeId: +placeId }
+              })
+          : [],
+      }
+    }
+
+    const _tripsCreate345_handlerPattern = (step: string): RegExp => {
+      return new RegExp(`^${step}:(\\d+):(\\d+)((?::\\d+,\\d+)*)$`)
+    }
+
+    const tripsCreate1_capacities: TgAction = {
       button: () => ({
         payload: 'tc1',
         text: 'tc1',
@@ -282,9 +313,9 @@ class Tg {
         parser: () => undefined,
         pattern: /^tc1$/,
       },
-    } as TgAction,
+    }
 
-    tripsCreate2_days: {
+    const tripsCreate2_days: TgAction<Pick<Trip, 'capacity'>> = {
       button: ($) => ({
         payload: `tc2:${$.capacity}`,
         text: `tc2:${$.capacity}`,
@@ -293,86 +324,44 @@ class Tg {
         parser: ([, capacity]) => ({ capacity: +capacity }),
         pattern: /^tc2:(\d+)$/,
       },
-    } as TgAction<Pick<Trip, 'capacity'>>,
+    }
 
-    tripsCreate3_places: {
+    const tripsCreate3_places: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
-        payload: `tc3:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
-          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
-          .join('')}`,
-        text: `tc3:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+        payload: _tripsCreate345_buttonPayload('tc3', $),
+        text: _tripsCreate345_buttonPayload('tc3', $),
       }),
       handler: {
-        parser: ([, capacity, day, tripPlaces]) => ({
-          trip: { capacity: +capacity, day: +day },
-          tripPlaces: tripPlaces
-            .split(':')
-            .slice(1)
-            .map((tripPlace) => {
-              const [placeId, minprice] = tripPlace.split(',')
-              return { minprice: +minprice, placeId: +placeId }
-            }),
-        }),
-        pattern: /^tc3:(\d+):(\d+)(:\d+,\d+)*$/,
+        parser: _tripsCreate345_handlerParser,
+        pattern: _tripsCreate345_handlerPattern('tc3'),
       },
-    } as TgAction<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>,
+    }
 
-    tripsCreate4_minprices: {
+    const tripsCreate4_minprices: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
-        payload: `tc4:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
-          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
-          .join('')}`,
-        text: `tc4:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+        payload: _tripsCreate345_buttonPayload('tc4', $),
+        text: _tripsCreate345_buttonPayload('tc4', $),
       }),
       handler: {
-        parser: ([, capacity, day, tripPlaces]) => ({
-          trip: { capacity: +capacity, day: +day },
-          tripPlaces: tripPlaces
-            .split(':')
-            .slice(1)
-            .map((tripPlace) => {
-              const [placeId, minprice] = tripPlace.split(',')
-              return { minprice: +minprice, placeId: +placeId }
-            }),
-        }),
-        pattern: /^tc4:(\d+):(\d+)(:\d+,\d+)*$/,
+        parser: _tripsCreate345_handlerParser,
+        pattern: _tripsCreate345_handlerPattern('tc4'),
       },
-    } as TgAction<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>,
+    }
 
-    tripsCreate5_commit: {
+    const tripsCreate5_commit: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
-        payload: `tc5:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
-          .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
-          .join('')}`,
-        text: `tc5:${$.trip.capacity}:${$.trip.day}:${$.tripPlaces.length}`,
+        payload: _tripsCreate345_buttonPayload('tc5', $),
+        text: _tripsCreate345_buttonPayload('tc5', $),
       }),
       handler: {
-        parser: ([, capacity, day, tripPlaces]) => ({
-          trip: { capacity: +capacity, day: +day },
-          tripPlaces: tripPlaces
-            .split(':')
-            .slice(1)
-            .map((tripPlace) => {
-              const [placeId, minprice] = tripPlace.split(',')
-              return { minprice: +minprice, placeId: +placeId }
-            }),
-        }),
-        pattern: /^tc5:(\d+):(\d+)(:\d+,\d+)*$/,
+        parser: _tripsCreate345_handlerParser,
+        pattern: _tripsCreate345_handlerPattern('tc5'),
       },
-    } as TgAction<{
-      trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'>>
-    }>,
+    }
 
     // delete
 
-    tripsDelete1_trips: {
+    const tripsDelete1_trips: TgAction<Pick<YdbArgs, '_offset'>> = {
       button: ($) => ({
         payload: `td1:${$._offset}`,
         text: `td1:${$._offset}`,
@@ -381,9 +370,9 @@ class Tg {
         parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^td1:(\d+)$/,
       },
-    } as TgAction<Pick<YdbArgs, '_offset'>>,
+    }
 
-    tripsDelete2_commit: {
+    const tripsDelete2_commit: TgAction<Pick<Trip, 'id'>> = {
       button: ($) => ({
         payload: `td2:${$.id}`,
         text: `td2:${$.id}`,
@@ -392,11 +381,11 @@ class Tg {
         parser: ([, id]) => ({ id: +id }),
         pattern: /^td2:(\d+)$/,
       },
-    } as TgAction<Pick<Trip, 'id'>>,
+    }
 
     // list
 
-    tripsList: {
+    const tripsList: TgAction<Pick<YdbArgs, '_offset'>> = {
       button: ($) => ({
         payload: `tl:${$._offset}`,
         text: `tl:${$._offset}`,
@@ -405,8 +394,35 @@ class Tg {
         parser: ([, _offset]) => ({ _offset: +_offset }),
         pattern: /^tl:(\d+)$/,
       },
-    } as TgAction<Pick<YdbArgs, '_offset'>>,
-  } as const
+    }
+
+    //
+    //
+    //
+
+    return {
+      index,
+
+      needs,
+      needsCreate1_places,
+      needsCreate2_maxdays,
+      needsCreate3_maxprices,
+      needsCreate4_commit,
+      needsDelete1_needs,
+      needsDelete2_commit,
+      needsList,
+
+      trips,
+      tripsCreate1_capacities,
+      tripsCreate2_days,
+      tripsCreate3_places,
+      tripsCreate4_minprices,
+      tripsCreate5_commit,
+      tripsDelete1_trips,
+      tripsDelete2_commit,
+      tripsList,
+    } as const
+  })()
 
   private static setupIndex(telegraf: Telegraf): void {
     const indexActionResponse: TgActionResponse = {
@@ -687,18 +703,20 @@ class Tg {
         places.map((place) => {
           return Tg.x2_Actions.tripsCreate4_minprices.button({
             trip,
-            tripPlaces: [...tripPlaces, { minprice: Infinity, placeId: place.id }],
+            tripPlaces: [...tripPlaces, { minprice: 0, placeId: place.id }],
           })
         }),
         2,
       )
 
+      const keyboard: TgActionButton[][] = [...placesButtons]
+      if (tripPlaces.length > 0) {
+        keyboard.push([Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })])
+      }
+      keyboard.push([Tg.x2_Actions.trips.button()])
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...placesButtons,
-          [Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })],
-          [Tg.x2_Actions.trips.button()],
-        ],
+        keyboard,
         message: Tg.x2_Actions.tripsCreate3_places.button({ trip, tripPlaces }).text,
       })
     })
@@ -709,12 +727,12 @@ class Tg {
       const { trip, tripPlaces } = Tg.x2_Actions.tripsCreate4_minprices.handler.parser(
         context.match,
       )
+      const lastTripPlace = tripPlaces.pop()
+      if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
 
       const minpricesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
         [10, 15, 20, 25, 30, 35, 40, 45, 50].map((minprice) => {
-          const lastTripPlace = tripPlaces.pop()
-          if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
-          return Tg.x2_Actions.tripsCreate5_commit.button({
+          return Tg.x2_Actions.tripsCreate3_places.button({
             trip,
             tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
           })
@@ -798,7 +816,9 @@ class Tg {
       const message: string =
         trips.length === 0
           ? 'Nothing'
-          : trips.reduce((message, trip) => `${message}\n${trip.id}, ${trip.tripPlaceName}`, '')
+          : trips.reduce((message, trip) => {
+              return `${message}\n${trip.id}, ${trip.tripPlaceName}, ${trip.tripPlaceMinprice}`
+            }, '')
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
