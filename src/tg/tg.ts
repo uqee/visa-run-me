@@ -94,7 +94,7 @@ class Tg {
     },
 
     accept: async (context: Context): Promise<void> => {
-      await context.answerCbQuery()
+      await context.answerCbQuery(undefined, { cache_time: 3 })
       await context.editMessageReplyMarkup(undefined)
     },
 
@@ -102,6 +102,13 @@ class Tg {
       const tgid: Tgid | undefined = context.from?.id
       if (tgid === undefined) throw new Error('tgid === undefined')
       return tgid
+    },
+
+    keyboard2d: (keyboard: TgActionButton[], width: number = 3): TgActionButton[][] => {
+      const keyboard1d: TgActionButton[] = keyboard.slice()
+      const keyboard2d: TgActionButton[][] = []
+      while (keyboard1d.length) keyboard2d.push(keyboard1d.splice(0, width))
+      return keyboard2d
     },
 
     reply: async (context: Context, response: TgActionResponse): Promise<void> => {
@@ -403,7 +410,7 @@ class Tg {
 
   private static setupIndex(telegraf: Telegraf): void {
     const indexActionResponse: TgActionResponse = {
-      keyboard: [[Tg.x2_Actions.needs.button()]],
+      keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
       message: Tg.x2_Actions.index.button().text,
     }
 
@@ -468,13 +475,13 @@ class Tg {
       const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
 
+      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        places.map((place) => Tg.x2_Actions.needsCreate2_maxdays.button({ placeId: place.id })),
+        2,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...places.map((place) => [
-            Tg.x2_Actions.needsCreate2_maxdays.button({ placeId: place.id }),
-          ]),
-          [Tg.x2_Actions.needs.button()],
-        ],
+        keyboard: [...placesButtons, [Tg.x2_Actions.needs.button()]],
         message: Tg.x2_Actions.needsCreate1_places.button().text,
       })
     })
@@ -482,25 +489,17 @@ class Tg {
     telegraf.action(Tg.x2_Actions.needsCreate2_maxdays.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
-      const day: number = 24 * 60 * 60
-      const epoch: number = epochFromDate()
       const { placeId } = Tg.x2_Actions.needsCreate2_maxdays.handler.parser(context.match)
 
+      const maxdaysButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((maxday) => {
+          return Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId })
+        }),
+        3,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...[
-            [1, 2, 3, 4, 5],
-            [6, 7, 8, 9, 10],
-          ].map((maxdays: number[]): TgActionButton[] => {
-            return maxdays.map((maxday: number): TgActionButton => {
-              return Tg.x2_Actions.needsCreate3_maxprices.button({
-                maxday: epoch + maxday * day,
-                placeId,
-              })
-            })
-          }),
-          [Tg.x2_Actions.needs.button()],
-        ],
+        keyboard: [...maxdaysButtons, [Tg.x2_Actions.needs.button()]],
         message: Tg.x2_Actions.needsCreate2_maxdays.button({ placeId }).text,
       })
     })
@@ -510,22 +509,19 @@ class Tg {
 
       const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxprices.handler.parser(context.match)
 
+      const maxpricesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        [10, 15, 20, 25, 30, 35, 40, 45, 50].map((maxprice) => {
+          return Tg.x2_Actions.needsCreate4_commit.button({
+            maxday,
+            maxprice,
+            placeId,
+          })
+        }),
+        3,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...[
-            [5, 10, 15, 20, 25],
-            [30, 35, 40, 45, 50],
-          ].map((maxprices: number[]): TgActionButton[] => {
-            return maxprices.map((maxprice: number): TgActionButton => {
-              return Tg.x2_Actions.needsCreate4_commit.button({
-                maxday,
-                maxprice,
-                placeId,
-              })
-            })
-          }),
-          [Tg.x2_Actions.needs.button()],
-        ],
+        keyboard: [...maxpricesButtons, [Tg.x2_Actions.needs.button()]],
         message: Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId }).text,
       })
     })
@@ -563,9 +559,14 @@ class Tg {
       const _limit: number = 9
       const needs: Need[] = await ydb.needsSelect({ _limit, _offset, tgid })
 
+      const needsButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        needs.map((need) => Tg.x2_Actions.needsDelete2_commit.button({ id: need.id })),
+        2,
+      )
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
-          ...needs.map((need) => [Tg.x2_Actions.needsDelete2_commit.button({ id: need.id })]),
+          ...needsButtons,
           [
             Tg.x2_Actions.needsDelete1_needs.button({ _offset: Math.max(_offset - _limit, 0) }),
             Tg.x2_Actions.needsDelete1_needs.button({ _offset: _offset + _limit }),
@@ -598,6 +599,11 @@ class Tg {
       const _limit: number = 9
       const needs = await ydb.needsSelect({ _limit, _offset })
 
+      const message: string =
+        needs.length === 0
+          ? 'Nothing'
+          : needs.reduce((message, need) => `${message}\n${need.id}, ${need.placeName}`, '')
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           [
@@ -606,10 +612,7 @@ class Tg {
           ],
           [Tg.x2_Actions.needs.button()],
         ],
-        message:
-          needs.length === 0
-            ? 'Nothing'
-            : needs.reduce((message, need) => `${message}\n${need.id}, ${need.placeName}`, ''),
+        message,
       })
     })
   }
@@ -636,19 +639,16 @@ class Tg {
 
     telegraf.action(Tg.x2_Actions.tripsCreate1_capacities.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
+
+      const capacitiesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((capacity) => {
+          return Tg.x2_Actions.tripsCreate2_days.button({ capacity })
+        }),
+        3,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...[
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9],
-          ].map((capacities: number[]): TgActionButton[] => {
-            return capacities.map((capacity: number): TgActionButton => {
-              return Tg.x2_Actions.tripsCreate2_days.button({ capacity })
-            })
-          }),
-          [Tg.x2_Actions.trips.button()],
-        ],
+        keyboard: [...capacitiesButtons, [Tg.x2_Actions.trips.button()]],
         message: Tg.x2_Actions.tripsCreate1_capacities.button().text,
       })
     })
@@ -658,22 +658,18 @@ class Tg {
 
       const { capacity } = Tg.x2_Actions.tripsCreate2_days.handler.parser(context.match)
 
+      const daysButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((day) => {
+          return Tg.x2_Actions.tripsCreate3_places.button({
+            trip: { capacity, day },
+            tripPlaces: [],
+          })
+        }),
+        3,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...[
-            [1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9],
-          ].map((days: number[]): TgActionButton[] => {
-            return days.map((day: number): TgActionButton => {
-              return Tg.x2_Actions.tripsCreate3_places.button({
-                trip: { capacity, day },
-                tripPlaces: [],
-              })
-            })
-          }),
-          [Tg.x2_Actions.trips.button()],
-        ],
+        keyboard: [...daysButtons, [Tg.x2_Actions.trips.button()]],
         message: Tg.x2_Actions.tripsCreate2_days.button({ capacity }).text,
       })
     })
@@ -687,14 +683,19 @@ class Tg {
       const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
 
+      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        places.map((place) => {
+          return Tg.x2_Actions.tripsCreate4_minprices.button({
+            trip,
+            tripPlaces: [...tripPlaces, { minprice: Infinity, placeId: place.id }],
+          })
+        }),
+        2,
+      )
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
-          ...places.map(({ id: placeId }) => [
-            Tg.x2_Actions.tripsCreate4_minprices.button({
-              trip,
-              tripPlaces: [...tripPlaces, { minprice: Infinity, placeId }],
-            }),
-          ]),
+          ...placesButtons,
           [Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })],
           [Tg.x2_Actions.trips.button()],
         ],
@@ -709,24 +710,20 @@ class Tg {
         context.match,
       )
 
+      const minpricesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        [10, 15, 20, 25, 30, 35, 40, 45, 50].map((minprice) => {
+          const lastTripPlace = tripPlaces.pop()
+          if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
+          return Tg.x2_Actions.tripsCreate5_commit.button({
+            trip,
+            tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
+          })
+        }),
+        3,
+      )
+
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...[
-            [10, 15, 20],
-            [25, 30, 35],
-            [40, 45, 50],
-          ].map((minprices: number[]): TgActionButton[] => {
-            return minprices.map((minprice: number): TgActionButton => {
-              const lastTripPlace = tripPlaces.pop()
-              if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
-              return Tg.x2_Actions.tripsCreate5_commit.button({
-                trip,
-                tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
-              })
-            })
-          }),
-          [Tg.x2_Actions.trips.button()],
-        ],
+        keyboard: [...minpricesButtons, [Tg.x2_Actions.trips.button()]],
         message: Tg.x2_Actions.tripsCreate4_minprices.button({ trip, tripPlaces }).text,
       })
     })
@@ -758,9 +755,14 @@ class Tg {
       const _limit: number = 9
       const trips: Trip[] = await ydb.tripsSelect({ _limit, _offset, tgid })
 
+      const tripsButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
+        trips.map((trip) => Tg.x2_Actions.tripsDelete2_commit.button({ id: trip.id })),
+        2,
+      )
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
-          ...trips.map((need) => [Tg.x2_Actions.tripsDelete2_commit.button({ id: need.id })]),
+          ...tripsButtons,
           [
             Tg.x2_Actions.tripsDelete1_trips.button({ _offset: Math.max(_offset - _limit, 0) }),
             Tg.x2_Actions.tripsDelete1_trips.button({ _offset: _offset + _limit }),
@@ -793,6 +795,11 @@ class Tg {
       const _limit: number = 9
       const trips = await ydb.tripsSelect({ _limit, _offset })
 
+      const message: string =
+        trips.length === 0
+          ? 'Nothing'
+          : trips.reduce((message, trip) => `${message}\n${trip.id}, ${trip.tripPlaceName}`, '')
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           [
@@ -801,10 +808,7 @@ class Tg {
           ],
           [Tg.x2_Actions.trips.button()],
         ],
-        message:
-          trips.length === 0
-            ? 'Nothing'
-            : trips.reduce((message, trip) => `${message}\n${trip.id}, ${trip.tripPlaceName}`, ''),
+        message,
       })
     })
   }
