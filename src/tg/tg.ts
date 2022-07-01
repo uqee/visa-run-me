@@ -709,7 +709,10 @@ class Tg {
         2,
       )
 
-      const keyboard: TgActionButton[][] = [...placesButtons]
+      const keyboard: TgActionButton[][] = []
+      if (tripPlaces.length < 9) {
+        keyboard.push(...placesButtons)
+      }
       if (tripPlaces.length > 0) {
         keyboard.push([Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })])
       }
