@@ -88,7 +88,7 @@ class Tg {
     },
 
     _toEscapedMarkdown: (message: string): string => {
-      for (const char of '+-()_') message = message.replaceAll(char, `\\${char}`)
+      for (const char of '+-()_#') message = message.replaceAll(char, `\\${char}`)
       return message
     },
 
@@ -696,8 +696,12 @@ class Tg {
       const { trip, tripPlaces } = Tg.x2_Actions.tripsCreate3_places.handler.parser(context.match)
 
       const _limit: number = 32
-      const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
+      let places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
+
+      const placeIds: Set<Place['id']> = new Set()
+      tripPlaces.forEach(({ placeId }) => placeIds.add(placeId))
+      places = places.filter(({ id }) => !placeIds.has(id))
 
       const placesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
         places.map((place) => {
@@ -820,7 +824,7 @@ class Tg {
         trips.length === 0
           ? 'Nothing'
           : trips.reduce((message, trip) => {
-              return `${message}\n${trip.id}, ${trip.tripPlaceName}, ${trip.tripPlaceMinprice}`
+              return `${message}\n#${trip.id} @${trip.placeName} ${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice}`
             }, '')
 
       await Tg.x1_Helpers.reply(context, {

@@ -260,7 +260,7 @@ class Ydb {
   ): Promise<
     Array<
       Trip & {
-        tripPlaceName: Place['name']
+        placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }
     >
@@ -269,12 +269,12 @@ class Ydb {
     // prettier-ignore
     return (
       await this._execute<Trip & {
-        tripPlaceName: Place['name']
+        placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }>(`
         select
           t.*,
-          p.name as tripPlaceName,
+          p.name as placeName,
           tp.minprice as tripPlaceMinprice
         from
           trips as t
