@@ -143,9 +143,14 @@ class Ydb {
           needs as n
           left join persons as pe on pe.tgid = n.tgid
           left join places as pl on pl.id = n.placeId
-        where n.deleted is null ${tgid ? `and n.tgid == ${tgid}` : ''}
-        order by created desc
-        limit ${_limit} offset ${_offset}
+        where
+          n.deleted is null
+          ${tgid ? `and n.tgid == ${tgid}` : ''}
+        order by
+          maxday asc,
+          created desc
+        limit ${_limit}
+        offset ${_offset}
       `)
     )[0]
   }
@@ -300,9 +305,14 @@ class Ydb {
           left join persons as pe on pe.tgid = t.tgid
           left join tripPlaces as tp on tp.tripId = t.id
           left join places as pl on pl.id = tp.placeId
-        where t.deleted is null ${tgid ? `and t.tgid == ${tgid}` : ''}
-        order by created desc
-        limit ${_limit} offset ${_offset}
+        where
+          t.deleted is null
+          ${tgid ? `and t.tgid == ${tgid}` : ''}
+        order by
+          day asc,
+          created desc
+        limit ${_limit}
+        offset ${_offset}
       `)
     )[0]
   }
