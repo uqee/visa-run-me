@@ -120,13 +120,29 @@ class Ydb {
 
   public async needsSelect(
     args: YdbArgs & Partial<Pick<Need, 'tgid'>>, //
-  ): Promise<Array<Need & { placeName: Place['name'] }>> {
+  ): Promise<
+    Array<
+      Need & {
+        personTgname: Person['tgname']
+        placeName: Place['name']
+      }
+    >
+  > {
     const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Need & { placeName: Place['name'] }>(`
-        select n.*, p.name as placeName
-        from needs as n left join places as p on n.placeId = p.id
+      await this._execute<Need & {
+        personTgname: Person['tgname']
+        placeName: Place['name']
+      }>(`
+        select
+          n.*,
+          pe.tgname as personTgname,
+          pl.name as placeName
+        from
+          needs as n
+          left join persons as pe on pe.tgid = n.tgid
+          left join places as pl on pl.id = n.placeId
         where n.deleted is null ${tgid ? `and n.tgid == ${tgid}` : ''}
         order by created desc
         limit ${_limit} offset ${_offset}
@@ -281,9 +297,9 @@ class Ydb {
           tp.minprice as tripPlaceMinprice
         from
           trips as t
+          left join persons as pe on pe.tgid = t.tgid
           left join tripPlaces as tp on tp.tripId = t.id
           left join places as pl on pl.id = tp.placeId
-          left join persons as pe on pe.tgid = t.tgid
         where t.deleted is null ${tgid ? `and t.tgid == ${tgid}` : ''}
         order by created desc
         limit ${_limit} offset ${_offset}

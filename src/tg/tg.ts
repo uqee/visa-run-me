@@ -42,6 +42,8 @@ class Tg {
     x0_CIRCLE: '◯',
     x0_CROSS: '╳',
     x0_DOT: '⋅',
+    x0_EM_DASH: '—',
+    x0_EN_DASH: '–',
     x0_MINUS: '−',
     x0_MULT: '×',
     x0_PLUS: '+',
@@ -629,8 +631,12 @@ class Tg {
 
       const message: string =
         needs.length === 0
-          ? 'Nothing'
-          : needs.reduce((message, need) => `${message}\n${need.id}, ${need.placeName}`, '')
+          ? Tg.x0_Symbols.x0_EM_DASH
+          : needs.reduce((message, need) => {
+              return `${message}\n${need.id} ${need.maxday} ${need.placeName} ${
+                Tg.x0_Symbols.x1_EURO
+              }${need.maxprice} ${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)}`
+            }, '')
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -836,11 +842,11 @@ class Tg {
 
       const message: string =
         trips.length === 0
-          ? 'Nothing'
+          ? Tg.x0_Symbols.x0_EM_DASH
           : trips.reduce((message, trip) => {
-              return `${message}\n${trip.id} ${trip.placeName} ${Tg.x0_Symbols.x1_EURO}${
-                trip.tripPlaceMinprice
-              } ${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)}`
+              return `${message}\n${trip.id} ${trip.day} ${trip.placeName} ${
+                Tg.x0_Symbols.x1_EURO
+              }${trip.tripPlaceMinprice} ${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)}`
             }, '')
 
       await Tg.x1_Helpers.reply(context, {
