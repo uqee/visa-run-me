@@ -33,6 +33,21 @@ interface TgAction<TArgs extends object | void = void> {
 
 //
 
+enum _Arrow {
+  LEFT,
+  RIGHT,
+}
+
+interface _WithArrow {
+  _arrow?: _Arrow
+}
+
+interface _WithPlaceName {
+  _placeName?: Place['name']
+}
+
+//
+
 class Tg {
   private static readonly x0_Symbols = {
     x0_ARROW_DOWN: '↓',
@@ -103,6 +118,12 @@ class Tg {
         .replace(/&/g, '&amp;') //
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
+    },
+
+    getArrow: (_arrow?: _Arrow): string => {
+      if (_arrow === _Arrow.LEFT) return Tg.x0_Symbols.x0_ARROW_LEFT
+      if (_arrow === _Arrow.RIGHT) return Tg.x0_Symbols.x0_ARROW_RIGHT
+      return Tg.x0_Symbols.x0_ARROW_DOWN
     },
 
     getEndOfDay: (timestamp: number): number => {
@@ -193,7 +214,7 @@ class Tg {
       },
     }
 
-    const needsCreate2_maxdays: TgAction<Pick<Need, 'placeId'> & { _placeName?: Place['name'] }> = {
+    const needsCreate2_maxdays: TgAction<Pick<Need, 'placeId'> & _WithPlaceName> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}`,
         text: `${$._placeName ?? $.placeId}`,
@@ -232,10 +253,10 @@ class Tg {
 
     // delete
 
-    const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'>> = {
+    const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `nd1:${$._offset}`,
-        text: `delete ${Tg.x0_Symbols.x0_ARROW_DOWN}${$._offset}`,
+        text: `delete ${Tg.x1_Helpers.getArrow($._arrow)}`,
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -256,10 +277,10 @@ class Tg {
 
     // list
 
-    const needsList: TgAction<Pick<YdbArgs, '_offset'>> = {
+    const needsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `nl:${$._offset}`,
-        text: `list ${Tg.x0_Symbols.x0_ARROW_DOWN}${$._offset}`,
+        text: `list ${Tg.x1_Helpers.getArrow($._arrow)}`,
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -286,7 +307,7 @@ class Tg {
 
     interface _tripsCreate345_payload {
       trip: Pick<Trip, 'capacity' | 'day'>
-      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'> & { _placeName?: Place['name'] }>
+      tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'> & _WithPlaceName>
     }
 
     const _tripsCreate345_buttonPayload = (step: string, $: _tripsCreate345_payload): string => {
@@ -400,10 +421,10 @@ class Tg {
 
     // delete
 
-    const tripsDelete1_trips: TgAction<Pick<YdbArgs, '_offset'>> = {
+    const tripsDelete1_trips: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `td1:${$._offset}`,
-        text: `delete ${Tg.x0_Symbols.x0_ARROW_DOWN}${$._offset}`,
+        text: `delete ${Tg.x1_Helpers.getArrow($._arrow)}`,
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -424,10 +445,10 @@ class Tg {
 
     // list
 
-    const tripsList: TgAction<Pick<YdbArgs, '_offset'>> = {
+    const tripsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `tl:${$._offset}`,
-        text: `list ${Tg.x0_Symbols.x0_ARROW_DOWN}${$._offset}`,
+        text: `list ${Tg.x1_Helpers.getArrow($._arrow)}`,
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -636,8 +657,14 @@ class Tg {
         keyboard: [
           ...needsButtons,
           [
-            Tg.x2_Actions.needsDelete1_needs.button({ _offset: Math.max(_offset - _limit, 0) }),
-            Tg.x2_Actions.needsDelete1_needs.button({ _offset: _offset + _limit }),
+            Tg.x2_Actions.needsDelete1_needs.button({
+              _arrow: _Arrow.LEFT,
+              _offset: Math.max(_offset - _limit, 0),
+            }),
+            Tg.x2_Actions.needsDelete1_needs.button({
+              _arrow: _Arrow.RIGHT,
+              _offset: _offset + _limit,
+            }),
           ],
           [Tg.x2_Actions.needs.button()],
         ],
@@ -679,8 +706,14 @@ class Tg {
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           [
-            Tg.x2_Actions.needsList.button({ _offset: Math.max(_offset - _limit, 0) }),
-            Tg.x2_Actions.needsList.button({ _offset: _offset + _limit }),
+            Tg.x2_Actions.needsList.button({
+              _arrow: _Arrow.LEFT,
+              _offset: Math.max(_offset - _limit, 0),
+            }),
+            Tg.x2_Actions.needsList.button({
+              _arrow: _Arrow.RIGHT, //
+              _offset: _offset + _limit,
+            }),
           ],
           [Tg.x2_Actions.needs.button()],
         ],
@@ -860,8 +893,14 @@ class Tg {
         keyboard: [
           ...tripsButtons,
           [
-            Tg.x2_Actions.tripsDelete1_trips.button({ _offset: Math.max(_offset - _limit, 0) }),
-            Tg.x2_Actions.tripsDelete1_trips.button({ _offset: _offset + _limit }),
+            Tg.x2_Actions.tripsDelete1_trips.button({
+              _arrow: _Arrow.LEFT,
+              _offset: Math.max(_offset - _limit, 0),
+            }),
+            Tg.x2_Actions.tripsDelete1_trips.button({
+              _arrow: _Arrow.RIGHT,
+              _offset: _offset + _limit,
+            }),
           ],
           [Tg.x2_Actions.trips.button()],
         ],
@@ -903,8 +942,14 @@ class Tg {
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
           [
-            Tg.x2_Actions.tripsList.button({ _offset: Math.max(_offset - _limit, 0) }),
-            Tg.x2_Actions.tripsList.button({ _offset: _offset + _limit }),
+            Tg.x2_Actions.tripsList.button({
+              _arrow: _Arrow.LEFT,
+              _offset: Math.max(_offset - _limit, 0),
+            }),
+            Tg.x2_Actions.tripsList.button({
+              _arrow: _Arrow.RIGHT, //
+              _offset: _offset + _limit,
+            }),
           ],
           [Tg.x2_Actions.trips.button()],
         ],
