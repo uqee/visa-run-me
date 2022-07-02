@@ -1,8 +1,11 @@
-export function epochFromDate(date?: Date): number {
-  const ms: number = date ? date.getTime() : Date.now()
+// javascript timestamp = milliseconds
+// uint32 epoch = seconds
+
+export function epochFromTimestamp(timestamp?: number): number {
+  const ms: number = timestamp ?? Date.now()
   return Math.round(ms / 1e3)
 }
 
-export function epochToDate(epoch: number): Date {
-  return new Date(epoch * 1e3)
+export function epochToTimestamp(epoch: number): number {
+  return epoch * 1e3
 }

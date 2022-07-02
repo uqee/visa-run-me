@@ -1,6 +1,6 @@
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
-import { epochFromDate } from '../utils'
+import { epochFromTimestamp } from '../utils'
 import { Cache, Need, Person, Place, Trip, TripPlace } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
@@ -69,7 +69,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       replace into caches (key, value, created)
-      values ('${key}', '${value}', ${epochFromDate()})
+      values ('${key}', '${value}', ${epochFromTimestamp()})
     `)
   }
 
@@ -96,7 +96,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       update needs
-      set deleted = ${epochFromDate()}
+      set deleted = ${epochFromTimestamp()}
       where id == ${id}
     `)
   }
@@ -113,23 +113,44 @@ class Ydb {
         created, deleted, id, tgid
       ) values (
         ${maxday}, ${maxprice}, ${personId}, ${placeId},
-        ${epochFromDate()}, null, $id, ${tgid}
+        ${epochFromTimestamp()}, null, $id, ${tgid}
       )
     `)
   }
 
   public async needsSelect(
     args: YdbArgs & Partial<Pick<Need, 'tgid'>>, //
-  ): Promise<Array<Need & { placeName: Place['name'] }>> {
+  ): Promise<
+    Array<
+      Need & {
+        personTgname: Person['tgname']
+        placeName: Place['name']
+      }
+    >
+  > {
     const { _limit, _offset, tgid } = args
     // prettier-ignore
     return (
-      await this._execute<Need & { placeName: Place['name'] }>(`
-        select n.*, p.name as placeName
-        from needs as n left join places as p on n.placeId = p.id
-        where n.deleted is null ${tgid ? `and n.tgid == ${tgid}` : ''}
-        order by created desc
-        limit ${_limit} offset ${_offset}
+      await this._execute<Need & {
+        personTgname: Person['tgname']
+        placeName: Place['name']
+      }>(`
+        select
+          n.*,
+          pe.tgname as personTgname,
+          pl.name as placeName
+        from
+          needs as n
+          left join persons as pe on pe.tgid = n.tgid
+          left join places as pl on pl.id = n.placeId
+        where
+          n.deleted is null
+          ${tgid ? `and n.tgid == ${tgid}` : ''}
+        order by
+          maxday asc,
+          created desc
+        limit ${_limit}
+        offset ${_offset}
       `)
     )[0]
   }
@@ -148,7 +169,7 @@ class Ydb {
         created, deleted, id, tgid
       ) values (
         '${firstname}', ${Ydb.str(lastname)}, ${Ydb.str(tgname)},
-        ${epochFromDate()}, null, $id, ${tgid}
+        ${epochFromTimestamp()}, null, $id, ${tgid}
       )
     `)
   }
@@ -210,7 +231,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       update trips
-      set deleted = ${epochFromDate()}
+      set deleted = ${epochFromTimestamp()}
       where id == ${id}
     `)
   }
@@ -224,7 +245,7 @@ class Ydb {
       tripPlaces,
     } = args
     if (tripPlaces.length === 0) throw new Error('tripPlaces.length === 0')
-    const created: Trip['created'] = epochFromDate()
+    const created: Trip['created'] = epochFromTimestamp()
 
     // prettier-ignore
     await this._execute(`
@@ -260,7 +281,8 @@ class Ydb {
   ): Promise<
     Array<
       Trip & {
-        tripPlaceName: Place['name']
+        personTgname: Person['tgname']
+        placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }
     >
@@ -269,20 +291,28 @@ class Ydb {
     // prettier-ignore
     return (
       await this._execute<Trip & {
-        tripPlaceName: Place['name']
+        personTgname: Person['tgname']
+        placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }>(`
         select
           t.*,
-          p.name as tripPlaceName,
+          pe.tgname as personTgname,
+          pl.name as placeName,
           tp.minprice as tripPlaceMinprice
         from
           trips as t
+          left join persons as pe on pe.tgid = t.tgid
           left join tripPlaces as tp on tp.tripId = t.id
-          left join places as p on tp.placeId = p.id
-        where t.deleted is null ${tgid ? `and t.tgid == ${tgid}` : ''}
-        order by created desc
-        limit ${_limit} offset ${_offset}
+          left join places as pl on pl.id = tp.placeId
+        where
+          t.deleted is null
+          ${tgid ? `and t.tgid == ${tgid}` : ''}
+        order by
+          day asc,
+          created desc
+        limit ${_limit}
+        offset ${_offset}
       `)
     )[0]
   }
