@@ -77,24 +77,37 @@ class Tg {
     x3_WTF: '⁉',
   } as const
 
+  private static readonly x1_Format = {
+    bold: (s: string): string => `<b>${s}</b>`,
+    code: (s: string): string => `<code class="language-python">${s}</code>`,
+    italic: (s: string): string => `<i>${s}</i>`,
+    link: (s: string, url: string): string => `<a href="${url}">${s}</a>`,
+    pre: (s: string): string => `<pre>${s}</pre>`,
+    spoiler: (s: string): string => `<span class="tg-spoiler">${s}</span>`,
+    strikethrough: (s: string): string => `<s>${s}</s>`,
+    underline: (s: string): string => `<u>${s}</u>`,
+  } as const
+
   private static readonly x1_Helpers = {
-    _toCallbackButtons: (matrix: TgActionButton[][]): InlineKeyboardButton.CallbackButton[][] => {
-      return matrix.map((array) => {
-        return array.map((button) => {
-          const { hidden, payload, text } = button
-          return Markup.button.callback(text, payload, hidden)
-        })
-      })
-    },
-
-    _toEscapedMarkdown: (message: string): string => {
-      for (const char of '+-()_#') message = message.replaceAll(char, `\\${char}`)
-      return message
-    },
-
     accept: async (context: Context): Promise<void> => {
       await context.answerCbQuery(undefined, { cache_time: 3 })
       await context.editMessageReplyMarkup(undefined)
+    },
+
+    escape: (message: string): string => {
+      // https://core.telegram.org/bots/api#html-style
+      return message
+        .replace(/&/g, '&amp;') //
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+    },
+
+    getKeyboard2d: (args: { buttons: TgActionButton[]; columns: number }): TgActionButton[][] => {
+      const { buttons, columns } = args
+      const keyboard1d: TgActionButton[] = buttons.slice()
+      const keyboard2d: TgActionButton[][] = []
+      while (keyboard1d.length) keyboard2d.push(keyboard1d.splice(0, columns))
+      return keyboard2d
     },
 
     getTgid: (context: Context): Tgid | never => {
@@ -103,32 +116,27 @@ class Tg {
       return tgid
     },
 
-    keyboard2d: (keyboard: TgActionButton[], width: number = 3): TgActionButton[][] => {
-      const keyboard1d: TgActionButton[] = keyboard.slice()
-      const keyboard2d: TgActionButton[][] = []
-      while (keyboard1d.length) keyboard2d.push(keyboard1d.splice(0, width))
-      return keyboard2d
+    getUserLink: (tgname: Person['tgname'], tgid: Tgid): string => {
+      return Tg.x1_Format.link(`@${tgname ?? tgid}`, `tg://user?id=${tgid}`)
     },
 
     reply: async (context: Context, response: TgActionResponse): Promise<void> => {
       const { keyboard, message } = response
-      await context.replyWithMarkdownV2(
-        Tg.x1_Helpers._toEscapedMarkdown(message),
-        Markup.inlineKeyboard(Tg.x1_Helpers._toCallbackButtons(keyboard)),
+      await context.replyWithHTML(
+        message,
+        Markup.inlineKeyboard(Tg.x1_Helpers.reply_getNativeKeyboard(keyboard)),
       )
     },
-  } as const
 
-  private static readonly x1_Markdown = {
-    bold: (s: string): string => `*${s}*`,
-    code: (s: string): string => `\`\`\`${s}\`\`\``,
-    italic: (s: string): string => `_${s}_`,
-    link: (s: string, url: string): string => `[${s}](${url})`,
-    linkuser: (s: string, tgid: string): string => `[${s}](tg://user?id=${tgid})`,
-    monospace: (s: string): string => `\`${s}\``,
-    spoiler: (s: string): string => `||${s}||`,
-    strikethrough: (s: string): string => `~${s}~`,
-    underline: (s: string): string => `__${s}__`,
+    reply_getNativeKeyboard: (
+      matrix: TgActionButton[][],
+    ): InlineKeyboardButton.CallbackButton[][] => {
+      return matrix.map((array) => {
+        return array.map(({ hidden, payload, text }) =>
+          Markup.button.callback(text, payload, hidden),
+        )
+      })
+    },
   } as const
 
   private static readonly x1_Strings = {
@@ -491,10 +499,12 @@ class Tg {
       const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
 
-      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        places.map((place) => Tg.x2_Actions.needsCreate2_maxdays.button({ placeId: place.id })),
-        2,
-      )
+      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: places.map((place) => {
+          return Tg.x2_Actions.needsCreate2_maxdays.button({ placeId: place.id })
+        }),
+        columns: 2,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...placesButtons, [Tg.x2_Actions.needs.button()]],
@@ -507,12 +517,12 @@ class Tg {
 
       const { placeId } = Tg.x2_Actions.needsCreate2_maxdays.handler.parser(context.match)
 
-      const maxdaysButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((maxday) => {
+      const maxdaysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((maxday) => {
           return Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId })
         }),
-        3,
-      )
+        columns: 3,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxdaysButtons, [Tg.x2_Actions.needs.button()]],
@@ -525,16 +535,16 @@ class Tg {
 
       const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxprices.handler.parser(context.match)
 
-      const maxpricesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        [10, 15, 20, 25, 30, 35, 40, 45, 50].map((maxprice) => {
+      const maxpricesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50].map((maxprice) => {
           return Tg.x2_Actions.needsCreate4_commit.button({
             maxday,
             maxprice,
             placeId,
           })
         }),
-        3,
-      )
+        columns: 3,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxpricesButtons, [Tg.x2_Actions.needs.button()]],
@@ -575,10 +585,12 @@ class Tg {
       const _limit: number = 9
       const needs: Need[] = await ydb.needsSelect({ _limit, _offset, tgid })
 
-      const needsButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        needs.map((need) => Tg.x2_Actions.needsDelete2_commit.button({ id: need.id })),
-        2,
-      )
+      const needsButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: needs.map((need) => {
+          return Tg.x2_Actions.needsDelete2_commit.button({ id: need.id })
+        }),
+        columns: 2,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -656,12 +668,12 @@ class Tg {
     telegraf.action(Tg.x2_Actions.tripsCreate1_capacities.handler.pattern, async (context) => {
       await Tg.x1_Helpers.accept(context)
 
-      const capacitiesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((capacity) => {
+      const capacitiesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((capacity) => {
           return Tg.x2_Actions.tripsCreate2_days.button({ capacity })
         }),
-        3,
-      )
+        columns: 3,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...capacitiesButtons, [Tg.x2_Actions.trips.button()]],
@@ -674,15 +686,15 @@ class Tg {
 
       const { capacity } = Tg.x2_Actions.tripsCreate2_days.handler.parser(context.match)
 
-      const daysButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].map((day) => {
+      const daysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((day) => {
           return Tg.x2_Actions.tripsCreate3_places.button({
             trip: { capacity, day },
             tripPlaces: [],
           })
         }),
-        3,
-      )
+        columns: 3,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...daysButtons, [Tg.x2_Actions.trips.button()]],
@@ -703,15 +715,15 @@ class Tg {
       tripPlaces.forEach(({ placeId }) => placeIds.add(placeId))
       places = places.filter(({ id }) => !placeIds.has(id))
 
-      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        places.map((place) => {
+      const placesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: places.map((place) => {
           return Tg.x2_Actions.tripsCreate4_minprices.button({
             trip,
             tripPlaces: [...tripPlaces, { minprice: 0, placeId: place.id }],
           })
         }),
-        2,
-      )
+        columns: 2,
+      })
 
       const keyboard: TgActionButton[][] = []
       if (tripPlaces.length < 9) {
@@ -737,15 +749,15 @@ class Tg {
       const lastTripPlace = tripPlaces.pop()
       if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
 
-      const minpricesButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        [10, 15, 20, 25, 30, 35, 40, 45, 50].map((minprice) => {
+      const minpricesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50].map((minprice) => {
           return Tg.x2_Actions.tripsCreate3_places.button({
             trip,
             tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
           })
         }),
-        3,
-      )
+        columns: 3,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...minpricesButtons, [Tg.x2_Actions.trips.button()]],
@@ -780,10 +792,12 @@ class Tg {
       const _limit: number = 9
       const trips: Trip[] = await ydb.tripsSelect({ _limit, _offset, tgid })
 
-      const tripsButtons: TgActionButton[][] = Tg.x1_Helpers.keyboard2d(
-        trips.map((trip) => Tg.x2_Actions.tripsDelete2_commit.button({ id: trip.id })),
-        2,
-      )
+      const tripsButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
+        buttons: trips.map((trip) => {
+          return Tg.x2_Actions.tripsDelete2_commit.button({ id: trip.id })
+        }),
+        columns: 2,
+      })
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [
@@ -824,7 +838,9 @@ class Tg {
         trips.length === 0
           ? 'Nothing'
           : trips.reduce((message, trip) => {
-              return `${message}\n#${trip.id} @${trip.placeName} ${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice}`
+              return `${message}\n${trip.id} ${trip.placeName} ${Tg.x0_Symbols.x1_EURO}${
+                trip.tripPlaceMinprice
+              } ${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)}`
             }, '')
 
       await Tg.x1_Helpers.reply(context, {

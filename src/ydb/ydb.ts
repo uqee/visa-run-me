@@ -260,6 +260,7 @@ class Ydb {
   ): Promise<
     Array<
       Trip & {
+        personTgname: Person['tgname']
         placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }
@@ -269,17 +270,20 @@ class Ydb {
     // prettier-ignore
     return (
       await this._execute<Trip & {
+        personTgname: Person['tgname']
         placeName: Place['name']
         tripPlaceMinprice: TripPlace['minprice']
       }>(`
         select
           t.*,
-          p.name as placeName,
+          pe.tgname as personTgname,
+          pl.name as placeName,
           tp.minprice as tripPlaceMinprice
         from
           trips as t
           left join tripPlaces as tp on tp.tripId = t.id
-          left join places as p on tp.placeId = p.id
+          left join places as pl on pl.id = tp.placeId
+          left join persons as pe on pe.tgid = t.tgid
         where t.deleted is null ${tgid ? `and t.tgid == ${tgid}` : ''}
         order by created desc
         limit ${_limit} offset ${_offset}
