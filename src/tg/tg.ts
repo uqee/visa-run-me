@@ -152,16 +152,6 @@ class Tg {
     },
   } as const
 
-  private static readonly x1_Strings = {
-    CREATE: `${Tg.x0_Symbols.x0_PLUS} Создать`,
-    DELETE: `${Tg.x0_Symbols.x0_MINUS} Удалить`,
-    ERROR: 'Что-то пошло не так. Пожалуйста, попробуйте заново.',
-    GET: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить`,
-    GET_MORE: `${Tg.x0_Symbols.x0_ARROW_DOWN} Загрузить еще`,
-    HELP: 'Используйте кнопки под сообщениями.',
-    SELECT: `${Tg.x0_Symbols.x0_CHECK} Выбрать`,
-  } as const
-
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   private static readonly x2_Actions = (() => {
     const index: TgAction = {
@@ -474,9 +464,10 @@ class Tg {
   })()
 
   private static setupIndex(telegraf: Telegraf): void {
+    const help: string = 'Используйте кнопки под сообщениями.'
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
-      message: Tg.x2_Actions.index.button().text,
+      message: 'home!',
     }
 
     telegraf.start(async (context) => {
@@ -492,7 +483,7 @@ class Tg {
     })
 
     telegraf.help(async (context) => {
-      await context.reply(Tg.x1_Strings.HELP)
+      await context.reply(help)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
@@ -503,12 +494,12 @@ class Tg {
 
     telegraf.action(/.*/, async (context) => {
       await Tg.x1_Helpers.accept(context)
-      await context.reply(Tg.x1_Strings.HELP)
+      await context.reply(help)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.on('message', async (context) => {
-      await context.reply(Tg.x1_Strings.HELP)
+      await context.reply(help)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
   }
@@ -527,7 +518,7 @@ class Tg {
           [Tg.x2_Actions.needsList.button({ _offset: 0 })],
           [Tg.x2_Actions.index.button()],
         ],
-        message: Tg.x2_Actions.needs.button().text,
+        message: 'needs!',
       })
     })
 
@@ -549,7 +540,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...placesButtons, [Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsCreate1_places.button().text,
+        message: 'place?',
       })
     })
 
@@ -570,7 +561,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxdaysButtons, [Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsCreate2_maxdays.button({ placeId }).text,
+        message: 'maxday?',
       })
     })
 
@@ -592,7 +583,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxpricesButtons, [Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId }).text,
+        message: 'maxprice?',
       })
     })
 
@@ -610,11 +601,7 @@ class Tg {
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsCreate4_commit.button({
-          maxday,
-          maxprice,
-          placeId,
-        }).text,
+        message: 'created!',
       })
     })
 
@@ -636,7 +623,7 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = needs.length ? '' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = needs.length ? 'need?\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const need of needs) {
         message += `#${need.id} `
         message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
@@ -666,7 +653,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.needs.button()]],
-        message: Tg.x2_Actions.needsDelete2_commit.button({ id }).text,
+        message: 'deleted!',
       })
     })
 
@@ -680,7 +667,7 @@ class Tg {
       const _limit: number = 9
       const needs = await ydb.needsSelect({ _limit, _offset })
 
-      let message: string = needs.length ? '' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = needs.length ? 'needs:\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const need of needs) {
         message += `#${need.id} `
         message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
@@ -716,7 +703,7 @@ class Tg {
           [Tg.x2_Actions.tripsList.button({ _offset: 0 })],
           [Tg.x2_Actions.index.button()],
         ],
-        message: Tg.x2_Actions.trips.button().text,
+        message: 'trips!',
       })
     })
 
@@ -734,7 +721,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...capacitiesButtons, [Tg.x2_Actions.trips.button()]],
-        message: Tg.x2_Actions.tripsCreate1_capacities.button().text,
+        message: 'capacity?',
       })
     })
 
@@ -758,7 +745,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...daysButtons, [Tg.x2_Actions.trips.button()]],
-        message: Tg.x2_Actions.tripsCreate2_days.button({ capacity }).text,
+        message: 'day?',
       })
     })
 
@@ -796,7 +783,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard,
-        message: Tg.x2_Actions.tripsCreate3_places.button({ trip, tripPlaces }).text,
+        message: 'place?',
       })
     })
 
@@ -822,10 +809,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...minpricesButtons, [Tg.x2_Actions.trips.button()]],
-        message: Tg.x2_Actions.tripsCreate4_minprices.button({
-          trip,
-          tripPlaces: [...tripPlaces, lastTripPlace],
-        }).text,
+        message: 'minprice?',
       })
     })
 
@@ -841,7 +825,7 @@ class Tg {
       await ydb.tripsInsert({ trip: { ...trip, personId: person.id, tgid }, tripPlaces })
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.trips.button()]],
-        message: Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces }).text,
+        message: 'created!',
       })
     })
 
@@ -863,7 +847,7 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = trips.length ? '' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = trips.length ? 'trip?\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const trip of trips) {
         message += `#${trip.id} `
         message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
@@ -893,7 +877,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.trips.button()]],
-        message: Tg.x2_Actions.tripsDelete2_commit.button({ id }).text,
+        message: 'deleted!',
       })
     })
 
@@ -907,7 +891,7 @@ class Tg {
       const _limit: number = 9
       const trips = await ydb.tripsSelect({ _limit, _offset })
 
-      let message: string = trips.length ? '' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = trips.length ? 'trips:\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const trip of trips) {
         message += `#${trip.id} `
         message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
