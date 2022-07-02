@@ -485,7 +485,8 @@ class Tg {
   })()
 
   private static setupIndex(telegraf: Telegraf): void {
-    const help: string = 'Используйте кнопки под сообщениями.'
+    const help: string =
+      'Для управления используйте кнопки под сообщениями. Если вдруг кнопки пропали и в любой непонятной ситуации попробуйте перезапустить бота через меню или командой /start.'
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
       message: 'home!',
@@ -504,7 +505,9 @@ class Tg {
     })
 
     telegraf.help(async (context) => {
-      await context.reply(help)
+      await context.reply(
+        `${help}\n\nС отзывами и предложениями стучите ко мне в телеграм: @denis_zhbankov.`,
+      )
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
