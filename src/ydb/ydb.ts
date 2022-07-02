@@ -1,6 +1,6 @@
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
-import { epochFromDate } from '../utils'
+import { epochFromTimestamp } from '../utils'
 import { Cache, Need, Person, Place, Trip, TripPlace } from './ydb-tables'
 
 type SdkExecuteDataQueryReturnType<T = Record<string, unknown>> = Array<T[] | never>
@@ -69,7 +69,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       replace into caches (key, value, created)
-      values ('${key}', '${value}', ${epochFromDate()})
+      values ('${key}', '${value}', ${epochFromTimestamp()})
     `)
   }
 
@@ -96,7 +96,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       update needs
-      set deleted = ${epochFromDate()}
+      set deleted = ${epochFromTimestamp()}
       where id == ${id}
     `)
   }
@@ -113,7 +113,7 @@ class Ydb {
         created, deleted, id, tgid
       ) values (
         ${maxday}, ${maxprice}, ${personId}, ${placeId},
-        ${epochFromDate()}, null, $id, ${tgid}
+        ${epochFromTimestamp()}, null, $id, ${tgid}
       )
     `)
   }
@@ -164,7 +164,7 @@ class Ydb {
         created, deleted, id, tgid
       ) values (
         '${firstname}', ${Ydb.str(lastname)}, ${Ydb.str(tgname)},
-        ${epochFromDate()}, null, $id, ${tgid}
+        ${epochFromTimestamp()}, null, $id, ${tgid}
       )
     `)
   }
@@ -226,7 +226,7 @@ class Ydb {
     // prettier-ignore
     await this._execute(`
       update trips
-      set deleted = ${epochFromDate()}
+      set deleted = ${epochFromTimestamp()}
       where id == ${id}
     `)
   }
@@ -240,7 +240,7 @@ class Ydb {
       tripPlaces,
     } = args
     if (tripPlaces.length === 0) throw new Error('tripPlaces.length === 0')
-    const created: Trip['created'] = epochFromDate()
+    const created: Trip['created'] = epochFromTimestamp()
 
     // prettier-ignore
     await this._execute(`

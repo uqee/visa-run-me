@@ -7,7 +7,8 @@
 import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
+import { epochFromTimestamp, epochToTimestamp } from '../utils'
+import { Epoch, Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
 
 //
 
@@ -102,6 +103,16 @@ class Tg {
         .replace(/&/g, '&amp;') //
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
+    },
+
+    getEndOfDay: (timestamp: number): number => {
+      const endOfDay = new Date(timestamp)
+      endOfDay.setUTCHours(23, 59, 59, 0)
+      return endOfDay.getTime()
+    },
+
+    getEpochString: (epoch: Epoch): string => {
+      return new Date(epochToTimestamp(epoch)).toISOString().substring(0, 10)
     },
 
     getKeyboard2d: (args: { buttons: TgActionButton[]; columns: number }): TgActionButton[][] => {
@@ -206,7 +217,7 @@ class Tg {
     const needsCreate3_maxprices: TgAction<Pick<Need, 'placeId' | 'maxday'>> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}`,
-        text: `nc2:${$.placeId}:${$.maxday}`,
+        text: `nc2:${$.placeId}:${Tg.x1_Helpers.getEpochString($.maxday)}`,
       }),
       handler: {
         parser: ([, placeId, maxday]) => ({ maxday: +maxday, placeId: +placeId }),
@@ -217,7 +228,7 @@ class Tg {
     const needsCreate4_commit: TgAction<Pick<Need, 'placeId' | 'maxday' | 'maxprice'>> = {
       button: ($) => ({
         payload: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
-        text: `nc2:${$.placeId}:${$.maxday}:${$.maxprice}`,
+        text: `nc2:${$.placeId}:${Tg.x1_Helpers.getEpochString($.maxday)}:${$.maxprice}`,
       }),
       handler: {
         parser: ([, placeId, maxday, maxprice]) => ({
@@ -294,6 +305,12 @@ class Tg {
         .join('')}`
     }
 
+    const _tripsCreate345_buttonText = (step: string, $: _tripsCreate345_payload): string => {
+      return `${step}:${$.trip.capacity}:${Tg.x1_Helpers.getEpochString($.trip.day)}${$.tripPlaces
+        .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
+        .join('')}`
+    }
+
     const _tripsCreate345_handlerParser = (match: string[]): _tripsCreate345_payload => {
       const [, capacity, day, tripPlaces] = match
       return {
@@ -339,7 +356,7 @@ class Tg {
     const tripsCreate3_places: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
         payload: _tripsCreate345_buttonPayload('tc3', $),
-        text: _tripsCreate345_buttonPayload('tc3', $),
+        text: _tripsCreate345_buttonText('tc3', $),
       }),
       handler: {
         parser: _tripsCreate345_handlerParser,
@@ -350,7 +367,7 @@ class Tg {
     const tripsCreate4_minprices: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
         payload: _tripsCreate345_buttonPayload('tc4', $),
-        text: _tripsCreate345_buttonPayload('tc4', $),
+        text: _tripsCreate345_buttonText('tc4', $),
       }),
       handler: {
         parser: _tripsCreate345_handlerParser,
@@ -361,7 +378,7 @@ class Tg {
     const tripsCreate5_commit: TgAction<_tripsCreate345_payload> = {
       button: ($) => ({
         payload: _tripsCreate345_buttonPayload('tc5', $),
-        text: _tripsCreate345_buttonPayload('tc5', $),
+        text: _tripsCreate345_buttonText('tc5', $),
       }),
       handler: {
         parser: _tripsCreate345_handlerParser,
@@ -519,11 +536,14 @@ class Tg {
 
       const { placeId } = Tg.x2_Actions.needsCreate2_maxdays.handler.parser(context.match)
 
+      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
+      const today: number = Tg.x1_Helpers.getEndOfDay(Date.now())
       const maxdaysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((maxday) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((days) => {
+          const maxday: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId })
         }),
-        columns: 3,
+        columns: 2,
       })
 
       await Tg.x1_Helpers.reply(context, {
@@ -692,14 +712,17 @@ class Tg {
 
       const { capacity } = Tg.x2_Actions.tripsCreate2_days.handler.parser(context.match)
 
+      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
+      const today: number = Tg.x1_Helpers.getEndOfDay(Date.now())
       const daysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((day) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((days) => {
+          const day: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Tg.x2_Actions.tripsCreate3_places.button({
             trip: { capacity, day },
             tripPlaces: [],
           })
         }),
-        columns: 3,
+        columns: 2,
       })
 
       await Tg.x1_Helpers.reply(context, {

@@ -1,4 +1,4 @@
-type Epoch = number // timestamp, precision 1 second
+export type Epoch = number // timestamp, precision 1 second
 type Id = number
 export type Tgid = number // https://core.telegram.org/bots/api#user
 
