@@ -133,7 +133,7 @@ class Tg {
     },
 
     getEpochString: (epoch: Epoch): string => {
-      return new Date(epochToTimestamp(epoch)).toISOString().substring(5, 10)
+      return new Date(epochToTimestamp(epoch)).toISOString().substring(0, 10)
     },
 
     getKeyboard2d: (args: { buttons: TgActionButton[]; columns: number }): TgActionButton[][] => {
