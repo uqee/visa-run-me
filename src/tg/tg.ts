@@ -638,15 +638,6 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = needs.length ? 'need to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
-      for (const need of needs) {
-        message += `#${need.id} `
-        message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
-        message += `${need.placeName} `
-        message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice} `
-        message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
-      }
-
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
           ? Tg.x2_Actions.needsDelete1_needs.button({
@@ -661,6 +652,15 @@ class Tg {
             })
           : undefined,
       ]
+
+      let message: string = needs.length ? 'need to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
+      for (const need of needs) {
+        message += `#${need.id} `
+        message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
+        message += `${need.placeName} `
+        message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice} `
+        message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
+      }
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...needsButtons, paginationButtons, Tg.x2_Constants.navigationButtons],
@@ -690,15 +690,6 @@ class Tg {
       const _limit: number = 9
       const needs = await ydb.needsSelect({ _limit, _offset })
 
-      let message: string = needs.length ? 'needs:\n' : Tg.x0_Symbols.x0_EM_DASH
-      for (const need of needs) {
-        message += `#${need.id} `
-        message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
-        message += `${need.placeName} `
-        message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice} `
-        message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
-      }
-
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
           ? Tg.x2_Actions.needsList.button({
@@ -713,6 +704,15 @@ class Tg {
             })
           : undefined,
       ]
+
+      let message: string = needs.length ? 'needs:\n' : Tg.x0_Symbols.x0_EM_DASH
+      for (const need of needs) {
+        message += `#${need.id} `
+        message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
+        message += `${need.placeName} `
+        message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice} `
+        message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
+      }
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [paginationButtons, Tg.x2_Constants.navigationButtons],
@@ -879,15 +879,6 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = trips.length ? 'trip to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
-      for (const trip of trips) {
-        message += `#${trip.id} `
-        message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
-        message += `${trip.placeName} `
-        message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice} `
-        message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
-      }
-
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
           ? Tg.x2_Actions.tripsDelete1_trips.button({
@@ -902,6 +893,15 @@ class Tg {
             })
           : undefined,
       ]
+
+      let message: string = trips.length ? 'trip to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
+      for (const trip of trips) {
+        message += `#${trip.id} `
+        message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
+        message += `${trip.placeName} `
+        message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice} `
+        message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
+      }
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...tripsButtons, paginationButtons, Tg.x2_Constants.navigationButtons],
@@ -931,15 +931,6 @@ class Tg {
       const _limit: number = 9
       const trips = await ydb.tripsSelect({ _limit, _offset })
 
-      let message: string = trips.length ? 'trips:\n' : Tg.x0_Symbols.x0_EM_DASH
-      for (const trip of trips) {
-        message += `#${trip.id} `
-        message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
-        message += `${trip.placeName} `
-        message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice} `
-        message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
-      }
-
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
           ? Tg.x2_Actions.tripsList.button({
@@ -954,6 +945,15 @@ class Tg {
             })
           : undefined,
       ]
+
+      let message: string = trips.length ? 'trips:\n' : Tg.x0_Symbols.x0_EM_DASH
+      for (const trip of trips) {
+        message += `#${trip.id} `
+        message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
+        message += `${trip.placeName} `
+        message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice} `
+        message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
+      }
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [paginationButtons, Tg.x2_Constants.navigationButtons],
