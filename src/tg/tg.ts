@@ -598,7 +598,7 @@ class Tg {
       const dayInMilliseconds: number = 24 * 60 * 60 * 1000
       const today: number = Tg.x1_Helpers.getEndOfDay(Date.now())
       const maxdaysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((days) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((days) => {
           const maxday: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Tg.x2_Actions.needsCreate3_maxprices.button({ maxday, placeId })
         }),
@@ -796,7 +796,7 @@ class Tg {
       const dayInMilliseconds: number = 24 * 60 * 60 * 1000
       const today: number = Tg.x1_Helpers.getEndOfDay(Date.now())
       const daysButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((days) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((days) => {
           const day: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Tg.x2_Actions.tripsCreate3_places.button({
             trip: { capacity, day },
