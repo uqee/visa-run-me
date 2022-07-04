@@ -145,6 +145,7 @@ class Ydb {
           left join places as pl on pl.id = n.placeId
         where
           n.deleted is null
+          and n.maxday > ${epochFromTimestamp()}
           ${tgid ? `and n.tgid == ${tgid}` : ''}
         order by
           maxday asc,
@@ -217,7 +218,8 @@ class Ydb {
         select *
         from places
         order by id
-        limit ${_limit} offset ${_offset}
+        limit ${_limit}
+        offset ${_offset}
       `)
     )[0]
   }
@@ -307,6 +309,7 @@ class Ydb {
           left join places as pl on pl.id = tp.placeId
         where
           t.deleted is null
+          and t.day > ${epochFromTimestamp()}
           ${tgid ? `and t.tgid == ${tgid}` : ''}
         order by
           day asc,
