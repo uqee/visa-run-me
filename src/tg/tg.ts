@@ -151,11 +151,11 @@ class Tg {
       },
     ): string => {
       let message: string = ''
-      message += `#${need.id}\n`
+      message += `#${need.id}, `
       message += `${Tg.x1_Helpers.getEpochString(need.maxday)}, `
       message += `${need.placeName}\n`
       message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice}, `
-      message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)}`
+      message += `${Tg.x1_Format.spoiler(Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid))}`
       return message
     },
 
@@ -173,11 +173,11 @@ class Tg {
       },
     ): string => {
       let message: string = ''
-      message += `#${trip.id}\n`
+      message += `#${trip.id}, `
       message += `${Tg.x1_Helpers.getEpochString(trip.day)}, `
       message += `${trip.placeName}\n`
       message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice}, `
-      message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)}`
+      message += `${Tg.x1_Format.spoiler(Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid))}`
       return message
     },
 
