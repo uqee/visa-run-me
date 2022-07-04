@@ -1,3 +1,4 @@
+export * from './array'
 export * from './encode'
 export * from './epoch'
 export type { AllOrNone, OptionalKeys, RequiredKeys } from './types.d'

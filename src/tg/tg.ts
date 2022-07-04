@@ -7,7 +7,7 @@
 import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { epochFromTimestamp, epochToTimestamp } from '../utils'
+import { arrayDeduplicate, epochFromTimestamp, epochToTimestamp } from '../utils'
 import { Epoch, Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
 
 //
@@ -877,8 +877,8 @@ class Tg {
       const trips = await ydb.tripsSelect({ _limit, _offset, tgid })
 
       const tripsButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: trips.map((trip) => {
-          return Tg.x2_Actions.tripsDelete2_commit.button({ id: trip.id })
+        buttons: arrayDeduplicate(trips.map((trip) => trip.id)).map((tripId) => {
+          return Tg.x2_Actions.tripsDelete2_commit.button({ id: tripId })
         }),
         columns: 2,
       })
