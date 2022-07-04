@@ -649,9 +649,9 @@ class Tg {
         keyboard: [Tg.x2_Constants.navigationButtons],
         message: `${Tg.x1_Format.bold(
           'Created',
-        )}\nplaceId=${placeId}\nmaxday=${Tg.x1_Helpers.getEpochString(
+        )}\nplaceId ${placeId}\nmaxday ${Tg.x1_Helpers.getEpochString(
           maxday,
-        )}\nmaxprice=${maxprice}`,
+        )}\nmaxprice ${maxprice}`,
       })
     })
 
