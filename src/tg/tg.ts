@@ -647,7 +647,9 @@ class Tg {
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
       await Tg.x1_Helpers.reply(context, {
         keyboard: [Tg.x2_Constants.navigationButtons],
-        message: `Created\nplaceId=${placeId}\nmaxday=${Tg.x1_Helpers.getEpochString(
+        message: `${Tg.x1_Format.bold(
+          'Created',
+        )}\nplaceId=${placeId}\nmaxday=${Tg.x1_Helpers.getEpochString(
           maxday,
         )}\nmaxprice=${maxprice}`,
       })
@@ -886,9 +888,9 @@ class Tg {
       await ydb.tripsInsert({ trip: { ...trip, personId: person.id, tgid }, tripPlaces })
       await Tg.x1_Helpers.reply(context, {
         keyboard: [Tg.x2_Constants.navigationButtons],
-        message: `Created\ncapacity=${trip.capacity}\nday=${Tg.x1_Helpers.getEpochString(
-          trip.day,
-        )}\nplaces.length=${tripPlaces.length}`,
+        message: `${Tg.x1_Format.bold('Created')}\n\ncapacity ${
+          trip.capacity
+        }\nday ${Tg.x1_Helpers.getEpochString(trip.day)}\nplaces.length ${tripPlaces.length}`,
       })
     })
 
