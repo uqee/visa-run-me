@@ -586,7 +586,7 @@ class Tg {
       const { maxday, placeId } = Tg.x2_Actions.needsCreate3_maxprices.handler.parser(context.match)
 
       const maxpricesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50].map((maxprice) => {
+        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80].map((maxprice) => {
           return Tg.x2_Actions.needsCreate4_commit.button({
             maxday,
             maxprice,
@@ -829,7 +829,7 @@ class Tg {
       if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
 
       const minpricesButtons: TgActionButton[][] = Tg.x1_Helpers.getKeyboard2d({
-        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50].map((minprice) => {
+        buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80].map((minprice) => {
           return Tg.x2_Actions.tripsCreate3_places.button({
             _loop: true,
             trip,
