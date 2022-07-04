@@ -429,7 +429,7 @@ class Tg {
           message += `${$.trip.capacity}p `
           message += `${Tg.x1_Helpers.getEpochString($.trip.day)} `
           for (const tripPlace of $.tripPlaces) {
-            message += `${tripPlace._placeName ?? tripPlace.placeId}=`
+            message += `${tripPlace._placeName ?? tripPlace.placeId},`
             message += `${Tg.x0_Symbols.x1_EURO}${tripPlace.minprice} `
           }
           return message
@@ -586,7 +586,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...placesButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Need.place ?',
+        message: 'place ?',
       })
     })
 
@@ -607,7 +607,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxdaysButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Need.maxday ?',
+        message: 'maxday ?',
       })
     })
 
@@ -629,7 +629,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...maxpricesButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Need.maxprice ?',
+        message: 'maxprice ?',
       })
     })
 
@@ -782,7 +782,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...capacitiesButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Trip.capacity ?',
+        message: 'capacity ?',
       })
     })
 
@@ -806,7 +806,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...daysButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Trip.day ?',
+        message: 'day ?',
       })
     })
 
@@ -844,7 +844,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard,
-        message: 'Trip.place ?',
+        message: 'place ?',
       })
     })
 
@@ -870,7 +870,7 @@ class Tg {
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [...minpricesButtons, Tg.x2_Constants.navigationButtons],
-        message: 'Trip.minprice ?',
+        message: 'minprice ?',
       })
     })
 
