@@ -19,7 +19,7 @@ interface TgActionButton {
 }
 
 interface TgActionResponse {
-  keyboard: TgActionButton[][]
+  keyboard: Array<Array<TgActionButton | undefined>>
   message: string
 }
 
@@ -163,13 +163,15 @@ class Tg {
     },
 
     reply_getNativeKeyboard: (
-      matrix: TgActionButton[][],
+      keyboard: Array<Array<TgActionButton | undefined>>,
     ): InlineKeyboardButton.CallbackButton[][] => {
-      return matrix.map((array) => {
-        return array.map(({ hidden, payload, text }) =>
-          Markup.button.callback(text, payload, hidden),
-        )
-      })
+      return keyboard
+        .filter((buttons) => !!buttons.length)
+        .map((buttons) => {
+          return buttons
+            .filter((button: TgActionButton | undefined): button is TgActionButton => !!button)
+            .map(({ hidden, payload, text }) => Markup.button.callback(text, payload, hidden))
+        })
     },
   } as const
 
@@ -256,7 +258,7 @@ class Tg {
     const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `nd1:${$._offset}`,
-        text: `delete ${Tg.x1_Helpers.getArrow($._arrow)}`,
+        text: ($._arrow === undefined ? 'delete ' : '') + Tg.x1_Helpers.getArrow($._arrow),
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -280,7 +282,7 @@ class Tg {
     const needsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `nl:${$._offset}`,
-        text: `list ${Tg.x1_Helpers.getArrow($._arrow)}`,
+        text: ($._arrow === undefined ? 'list ' : '') + Tg.x1_Helpers.getArrow($._arrow),
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -424,7 +426,7 @@ class Tg {
     const tripsDelete1_trips: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `td1:${$._offset}`,
-        text: `delete ${Tg.x1_Helpers.getArrow($._arrow)}`,
+        text: ($._arrow === undefined ? 'delete ' : '') + Tg.x1_Helpers.getArrow($._arrow),
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -448,7 +450,7 @@ class Tg {
     const tripsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
       button: ($) => ({
         payload: `tl:${$._offset}`,
-        text: `list ${Tg.x1_Helpers.getArrow($._arrow)}`,
+        text: ($._arrow === undefined ? 'list ' : '') + Tg.x1_Helpers.getArrow($._arrow),
       }),
       handler: {
         parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -647,7 +649,7 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = needs.length ? 'need?\n' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = needs.length ? 'need to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const need of needs) {
         message += `#${need.id} `
         message += `${Tg.x1_Helpers.getEpochString(need.maxday)} `
@@ -656,21 +658,23 @@ class Tg {
         message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
       }
 
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...needsButtons,
-          [
-            Tg.x2_Actions.needsDelete1_needs.button({
+      const paginationButtons: Array<TgActionButton | undefined> = [
+        _offset - _limit >= 0
+          ? Tg.x2_Actions.needsDelete1_needs.button({
               _arrow: _Arrow.LEFT,
-              _offset: Math.max(_offset - _limit, 0),
-            }),
-            Tg.x2_Actions.needsDelete1_needs.button({
-              _arrow: _Arrow.RIGHT,
+              _offset: _offset - _limit,
+            })
+          : undefined,
+        needs.length === _limit
+          ? Tg.x2_Actions.needsDelete1_needs.button({
+              _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
-            }),
-          ],
-          [Tg.x2_Actions.needs.button()],
-        ],
+            })
+          : undefined,
+      ]
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [...needsButtons, paginationButtons, [Tg.x2_Actions.needs.button()]],
         message,
       })
     })
@@ -706,20 +710,23 @@ class Tg {
         message += `${Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid)} \n`
       }
 
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          [
-            Tg.x2_Actions.needsList.button({
+      const paginationButtons: Array<TgActionButton | undefined> = [
+        _offset - _limit >= 0
+          ? Tg.x2_Actions.needsList.button({
               _arrow: _Arrow.LEFT,
-              _offset: Math.max(_offset - _limit, 0),
-            }),
-            Tg.x2_Actions.needsList.button({
+              _offset: _offset - _limit,
+            })
+          : undefined,
+        needs.length === _limit
+          ? Tg.x2_Actions.needsList.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
-            }),
-          ],
-          [Tg.x2_Actions.needs.button()],
-        ],
+            })
+          : undefined,
+      ]
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [paginationButtons, [Tg.x2_Actions.needs.button()]],
         message,
       })
     })
@@ -883,7 +890,7 @@ class Tg {
         columns: 2,
       })
 
-      let message: string = trips.length ? 'trip?\n' : Tg.x0_Symbols.x0_EM_DASH
+      let message: string = trips.length ? 'trip to delete?\n' : Tg.x0_Symbols.x0_EM_DASH
       for (const trip of trips) {
         message += `#${trip.id} `
         message += `${Tg.x1_Helpers.getEpochString(trip.day)} `
@@ -892,21 +899,23 @@ class Tg {
         message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
       }
 
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          ...tripsButtons,
-          [
-            Tg.x2_Actions.tripsDelete1_trips.button({
+      const paginationButtons: Array<TgActionButton | undefined> = [
+        _offset - _limit >= 0
+          ? Tg.x2_Actions.tripsDelete1_trips.button({
               _arrow: _Arrow.LEFT,
-              _offset: Math.max(_offset - _limit, 0),
-            }),
-            Tg.x2_Actions.tripsDelete1_trips.button({
-              _arrow: _Arrow.RIGHT,
+              _offset: _offset - _limit,
+            })
+          : undefined,
+        trips.length === _limit
+          ? Tg.x2_Actions.tripsDelete1_trips.button({
+              _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
-            }),
-          ],
-          [Tg.x2_Actions.trips.button()],
-        ],
+            })
+          : undefined,
+      ]
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [...tripsButtons, paginationButtons, [Tg.x2_Actions.trips.button()]],
         message,
       })
     })
@@ -942,20 +951,23 @@ class Tg {
         message += `${Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid)} \n`
       }
 
-      await Tg.x1_Helpers.reply(context, {
-        keyboard: [
-          [
-            Tg.x2_Actions.tripsList.button({
+      const paginationButtons: Array<TgActionButton | undefined> = [
+        _offset - _limit >= 0
+          ? Tg.x2_Actions.tripsList.button({
               _arrow: _Arrow.LEFT,
-              _offset: Math.max(_offset - _limit, 0),
-            }),
-            Tg.x2_Actions.tripsList.button({
+              _offset: _offset - _limit,
+            })
+          : undefined,
+        trips.length === _limit
+          ? Tg.x2_Actions.tripsList.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
-            }),
-          ],
-          [Tg.x2_Actions.trips.button()],
-        ],
+            })
+          : undefined,
+      ]
+
+      await Tg.x1_Helpers.reply(context, {
+        keyboard: [paginationButtons, [Tg.x2_Actions.trips.button()]],
         message,
       })
     })
