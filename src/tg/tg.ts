@@ -109,7 +109,7 @@ class Tg {
   private static readonly x1_Helpers = {
     accept: async (context: Context): Promise<void> => {
       await context.answerCbQuery(undefined, { cache_time: 3 })
-      await context.editMessageReplyMarkup(undefined)
+      await context.deleteMessage()
     },
 
     escape: (message: string): string => {
