@@ -208,6 +208,17 @@ class Tg {
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   private static readonly x2_Actions = (() => {
+    const index: TgAction = {
+      button: () => ({
+        payload: 'i',
+        text: 'Home',
+      }),
+      handler: {
+        parser: () => undefined,
+        pattern: /^i$/,
+      },
+    }
+
     //
     // needs
     //
@@ -215,7 +226,7 @@ class Tg {
     const needs: TgAction = {
       button: () => ({
         payload: 'n',
-        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Needs`,
+        text: 'Needs',
       }),
       handler: {
         parser: () => undefined,
@@ -317,7 +328,7 @@ class Tg {
     const trips: TgAction = {
       button: () => ({
         payload: 't',
-        text: `${Tg.x0_Symbols.x2_ARROWHEAD} Trips`,
+        text: 'Trips',
       }),
       handler: {
         parser: () => undefined,
@@ -483,6 +494,8 @@ class Tg {
     //
 
     return {
+      index,
+
       needs,
       needsCreate1_places,
       needsCreate2_maxdays,
@@ -504,18 +517,11 @@ class Tg {
     } as const
   })()
 
-  private static readonly x2_Constants = {
-    navigationButtons: [
-      Tg.x2_Actions.needs.button(), //
-      Tg.x2_Actions.trips.button(),
-    ] as TgActionButton[],
-  } as const
-
   private static setupIndex(telegraf: Telegraf): void {
     const help: string =
       'Для управления используйте кнопки под сообщениями. Если вдруг кнопки пропали и в любой непонятной ситуации попробуйте перезапустить бота через меню или командой /start.'
     const indexActionResponse: TgActionResponse = {
-      keyboard: [Tg.x2_Constants.navigationButtons],
+      keyboard: [[Tg.x2_Actions.needs.button(), Tg.x2_Actions.trips.button()]],
       message: 'Home',
     }
 
@@ -535,6 +541,11 @@ class Tg {
       await context.reply(
         `${help}\n\nС отзывами и предложениями стучите ко мне в телеграм: @denis_zhbankov.`,
       )
+      await Tg.x1_Helpers.reply(context, indexActionResponse)
+    })
+
+    telegraf.action(Tg.x2_Actions.index.handler.pattern, async (context) => {
+      await Tg.x1_Helpers.accept(context)
       await Tg.x1_Helpers.reply(context, indexActionResponse)
     })
 
@@ -562,7 +573,7 @@ class Tg {
             Tg.x2_Actions.needsDelete1_needs.button({ _offset: 0 }),
             Tg.x2_Actions.needsList.button({ _offset: 0 }),
           ],
-          Tg.x2_Constants.navigationButtons,
+          [Tg.x2_Actions.index.button()],
         ],
         message: 'Needs',
       })
@@ -585,7 +596,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...placesButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...placesButtons, [Tg.x2_Actions.index.button()]],
         message: 'place ?',
       })
     })
@@ -606,7 +617,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...maxdaysButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...maxdaysButtons, [Tg.x2_Actions.index.button()]],
         message: 'maxday ?',
       })
     })
@@ -628,7 +639,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...maxpricesButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...maxpricesButtons, [Tg.x2_Actions.index.button()]],
         message: 'maxprice ?',
       })
     })
@@ -646,7 +657,7 @@ class Tg {
 
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [Tg.x2_Constants.navigationButtons],
+        keyboard: [[Tg.x2_Actions.index.button()]],
         message: `${Tg.x1_Format.bold(
           'Created',
         )}\nplaceId ${placeId}\nmaxday ${Tg.x1_Helpers.getEpochString(
@@ -696,7 +707,7 @@ class Tg {
       }
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...needsButtons, paginationButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...needsButtons, paginationButtons, [Tg.x2_Actions.index.button()]],
         message,
       })
     })
@@ -708,7 +719,7 @@ class Tg {
       await ydb.needsDelete({ id })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [Tg.x2_Constants.navigationButtons],
+        keyboard: [[Tg.x2_Actions.index.button()]],
         message: `Deleted\nid=${id}`,
       })
     })
@@ -746,7 +757,7 @@ class Tg {
       }
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [paginationButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [paginationButtons, [Tg.x2_Actions.index.button()]],
         message,
       })
     })
@@ -764,7 +775,7 @@ class Tg {
             Tg.x2_Actions.tripsDelete1_trips.button({ _offset: 0 }),
             Tg.x2_Actions.tripsList.button({ _offset: 0 }),
           ],
-          Tg.x2_Constants.navigationButtons,
+          [Tg.x2_Actions.index.button()],
         ],
         message: 'Trips',
       })
@@ -783,7 +794,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...capacitiesButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...capacitiesButtons, [Tg.x2_Actions.index.button()]],
         message: 'capacity ?',
       })
     })
@@ -807,7 +818,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...daysButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...daysButtons, [Tg.x2_Actions.index.button()]],
         message: 'day ?',
       })
     })
@@ -842,7 +853,7 @@ class Tg {
       if (tripPlaces.length > 0) {
         keyboard.push([Tg.x2_Actions.tripsCreate5_commit.button({ trip, tripPlaces })])
       }
-      keyboard.push(Tg.x2_Constants.navigationButtons)
+      keyboard.push([Tg.x2_Actions.index.button()])
 
       await Tg.x1_Helpers.reply(context, {
         keyboard,
@@ -871,7 +882,7 @@ class Tg {
       })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...minpricesButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...minpricesButtons, [Tg.x2_Actions.index.button()]],
         message: 'minprice ?',
       })
     })
@@ -887,7 +898,7 @@ class Tg {
 
       await ydb.tripsInsert({ trip: { ...trip, personId: person.id, tgid }, tripPlaces })
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [Tg.x2_Constants.navigationButtons],
+        keyboard: [[Tg.x2_Actions.index.button()]],
         message: `${Tg.x1_Format.bold('Created')}\n\ncapacity ${
           trip.capacity
         }\nday ${Tg.x1_Helpers.getEpochString(trip.day)}\nplaces.length ${tripPlaces.length}`,
@@ -935,7 +946,7 @@ class Tg {
       }
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [...tripsButtons, paginationButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [...tripsButtons, paginationButtons, [Tg.x2_Actions.index.button()]],
         message,
       })
     })
@@ -947,7 +958,7 @@ class Tg {
       await ydb.tripsDelete({ id })
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [Tg.x2_Constants.navigationButtons],
+        keyboard: [[Tg.x2_Actions.index.button()]],
         message: `Deleted\nid=${id}`,
       })
     })
@@ -985,7 +996,7 @@ class Tg {
       }
 
       await Tg.x1_Helpers.reply(context, {
-        keyboard: [paginationButtons, Tg.x2_Constants.navigationButtons],
+        keyboard: [paginationButtons, [Tg.x2_Actions.index.button()]],
         message,
       })
     })
