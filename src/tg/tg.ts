@@ -7,8 +7,20 @@
 import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { arrayDeduplicate, epochFromTimestamp, epochToTimestamp } from '../utils'
-import { Epoch, Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
+import { arrayDeduplicate, arrayToObject, epochFromTimestamp, epochToTimestamp } from '../utils'
+import {
+  Epoch,
+  Need,
+  NeedsSelectItem,
+  Person,
+  Place,
+  Tgid,
+  Trip,
+  TripPlace,
+  TripsSelectItem,
+  ydb,
+  YdbArgs,
+} from '../ydb'
 
 //
 
@@ -145,17 +157,20 @@ class Tg {
     },
 
     getNeedString: (
-      need: Need & {
-        personTgname: Person['tgname']
-        placeName: Place['name']
-      },
+      needsSelectItem: Partial<Pick<NeedsSelectItem, 'id'>> &
+        Pick<NeedsSelectItem, 'maxday' | 'maxprice' | 'personTgname' | 'placeName' | 'tgid'>,
     ): string => {
+      const { id, maxday, maxprice, personTgname, placeName, tgid } = needsSelectItem
       let message: string = ''
-      message += `#${need.id}, `
-      message += `${Tg.x1_Helpers.getEpochString(need.maxday)}, `
-      message += `${need.placeName}\n`
-      message += `${Tg.x0_Symbols.x1_EURO}${need.maxprice}, `
-      message += `${Tg.x1_Format.spoiler(Tg.x1_Helpers.getUserLink(need.personTgname, need.tgid))}`
+
+      message += `id ${id ?? '??'}\n`
+      message += `maxday ${Tg.x1_Helpers.getEpochString(maxday)}\n`
+      message += `maxprice ${maxprice}\n`
+      message += `personTgname ${Tg.x1_Format.spoiler(
+        Tg.x1_Helpers.getUserLink(personTgname, tgid),
+      )}\n`
+      message += `placeName ${placeName}\n`
+
       return message
     },
 
@@ -166,18 +181,24 @@ class Tg {
     },
 
     getTripString: (
-      trip: Trip & {
-        personTgname: Person['tgname']
-        placeName: Place['name']
-        tripPlaceMinprice: TripPlace['minprice']
-      },
+      tripsSelectItem: Partial<Pick<TripsSelectItem, 'id'>> &
+        Pick<TripsSelectItem, 'capacity' | 'day' | 'personTgname' | 'tgid' | 'tripPlaces'>,
     ): string => {
+      const { capacity, day, id, personTgname, tgid, tripPlaces } = tripsSelectItem
       let message: string = ''
-      message += `#${trip.id}, `
-      message += `${Tg.x1_Helpers.getEpochString(trip.day)}, `
-      message += `${trip.placeName}\n`
-      message += `${Tg.x0_Symbols.x1_EURO}${trip.tripPlaceMinprice}, `
-      message += `${Tg.x1_Format.spoiler(Tg.x1_Helpers.getUserLink(trip.personTgname, trip.tgid))}`
+
+      message += `capacity ${capacity}\n`
+      message += `day ${Tg.x1_Helpers.getEpochString(day)}\n`
+      message += `id ${id ?? '??'}\n`
+      message += `personTgname ${Tg.x1_Format.spoiler(
+        Tg.x1_Helpers.getUserLink(personTgname, tgid),
+      )}\n`
+      message += 'tripPlaces\n\n'
+      for (const tripPlace of tripPlaces) {
+        message += `  placeName ${tripPlace.placeName}\n`
+        message += `  tripPlaceMinprice ${tripPlace.minprice}\n\n`
+      }
+
       return message
     },
 
@@ -396,13 +417,13 @@ class Tg {
         payload: _tripsCreate345_buttonPayload('tc3', $),
         text:
           $._loop === undefined
-            ? `${Tg.x1_Helpers.getEpochString($.trip.day)} `
+            ? `${Tg.x1_Helpers.getEpochString($.trip.day)}`
             : ((): string => {
                 const lastTripPlace = $.tripPlaces[$.tripPlaces.length - 1]
                 if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
 
                 let message: string = ''
-                message += `${Tg.x0_Symbols.x1_EURO}${lastTripPlace.minprice} `
+                message += `${Tg.x0_Symbols.x1_EURO}${lastTripPlace.minprice}`
 
                 return message
               })(),
@@ -436,7 +457,7 @@ class Tg {
       button: ($) => ({
         payload: _tripsCreate345_buttonPayload('tc5', $),
         text: ((): string => {
-          let message: string = 'fin '
+          let message: string = 'Save '
           message += `${$.trip.capacity}p `
           message += `${Tg.x1_Helpers.getEpochString($.trip.day)} `
           for (const tripPlace of $.tripPlaces) {
@@ -655,14 +676,23 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
+      const place: Place | undefined = await ydb.placesSelectById({ id: placeId })
+      if (place === undefined) throw new Error('place === undefined')
+
       await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
+
+      let message: string = `${Tg.x1_Format.bold('Need created')}\n\n`
+      message += Tg.x1_Helpers.getNeedString({
+        maxday,
+        maxprice,
+        personTgname: person.tgname,
+        placeName: place.name,
+        tgid,
+      })
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
-        message: `${Tg.x1_Format.bold(
-          'Created',
-        )}\nplaceId ${placeId}\nmaxday ${Tg.x1_Helpers.getEpochString(
-          maxday,
-        )}\nmaxprice ${maxprice}`,
+        message,
       })
     })
 
@@ -700,8 +730,8 @@ class Tg {
       ]
 
       let message: string = needs.length
-        ? Tg.x1_Format.bold('Need') + ' ?\n\n'
-        : Tg.x0_Symbols.x0_EM_DASH
+        ? Tg.x1_Format.bold('Need ?') + '\n\n'
+        : Tg.x0_Symbols.x0_EN_DASH
       for (const need of needs) {
         message += Tg.x1_Helpers.getNeedString(need) + '\n\n'
       }
@@ -716,11 +746,18 @@ class Tg {
       await Tg.x1_Helpers.accept(context)
 
       const { id } = Tg.x2_Actions.needsDelete2_commit.handler.parser(context.match)
+
+      const need = await ydb.needsSelectById({ id })
+      if (need === undefined) throw new Error('need === undefined')
+
       await ydb.needsDelete({ id })
+
+      let message: string = `${Tg.x1_Format.bold('Need deleted')}\n\n`
+      message += Tg.x1_Helpers.getNeedString(need)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
-        message: `Deleted\nid=${id}`,
+        message,
       })
     })
 
@@ -751,7 +788,7 @@ class Tg {
 
       let message: string = needs.length
         ? Tg.x1_Format.bold('Needs') + '\n\n'
-        : Tg.x0_Symbols.x0_EM_DASH
+        : Tg.x0_Symbols.x0_EN_DASH
       for (const need of needs) {
         message += Tg.x1_Helpers.getNeedString(need) + '\n\n'
       }
@@ -896,12 +933,26 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
-      await ydb.tripsInsert({ trip: { ...trip, personId: person.id, tgid }, tripPlaces })
+      const places = arrayToObject<Place, 'id'>('id')(
+        await ydb.placesSelect({ _limit: 64, _offset: 0 }),
+      )
+
+      await ydb.tripsInsert({ ...trip, personId: person.id, tgid, tripPlaces })
+
+      let message: string = `${Tg.x1_Format.bold('Trip created')}\n\n`
+      message += Tg.x1_Helpers.getTripString({
+        ...trip,
+        personTgname: person.tgname,
+        tgid,
+        tripPlaces: tripPlaces.map((tripPlace) => ({
+          minprice: tripPlace.minprice,
+          placeName: places[tripPlace.placeId].name,
+        })),
+      })
+
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
-        message: `${Tg.x1_Format.bold('Created')}\n\ncapacity ${
-          trip.capacity
-        }\nday ${Tg.x1_Helpers.getEpochString(trip.day)}\nplaces.length ${tripPlaces.length}`,
+        message,
       })
     })
 
@@ -939,8 +990,8 @@ class Tg {
       ]
 
       let message: string = trips.length
-        ? Tg.x1_Format.bold('Trip') + ' ?\n\n'
-        : Tg.x0_Symbols.x0_EM_DASH
+        ? Tg.x1_Format.bold('Trip ?') + '\n\n'
+        : Tg.x0_Symbols.x0_EN_DASH
       for (const trip of trips) {
         message += Tg.x1_Helpers.getTripString(trip) + '\n\n'
       }
@@ -955,11 +1006,18 @@ class Tg {
       await Tg.x1_Helpers.accept(context)
 
       const { id } = Tg.x2_Actions.tripsDelete2_commit.handler.parser(context.match)
+
+      const trips = await ydb.tripsSelectById({ id })
+      if (trips[0] === undefined) throw new Error('trips[0] === undefined')
+
       await ydb.tripsDelete({ id })
+
+      let message: string = `${Tg.x1_Format.bold('Trip deleted')}\n\n`
+      message += Tg.x1_Helpers.getTripString(trips[0])
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
-        message: `Deleted\nid=${id}`,
+        message,
       })
     })
 
@@ -990,7 +1048,7 @@ class Tg {
 
       let message: string = trips.length
         ? Tg.x1_Format.bold('Trips') + '\n\n'
-        : Tg.x0_Symbols.x0_EM_DASH
+        : Tg.x0_Symbols.x0_EN_DASH
       for (const trip of trips) {
         message += Tg.x1_Helpers.getTripString(trip) + '\n\n'
       }
