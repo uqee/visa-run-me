@@ -7,7 +7,7 @@
 import { InlineKeyboardButton, Update } from '@grammyjs/types'
 import { Context, Markup, Telegraf } from 'telegraf'
 
-import { arrayDeduplicate, arrayToObject, epochFromTimestamp, epochToTimestamp } from '../utils'
+import { arrayDeduplicate, epochFromTimestamp, epochToTimestamp } from '../utils'
 import {
   Epoch,
   Need,
@@ -676,19 +676,19 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
-      const place: Place | undefined = await ydb.placesSelectById({ id: placeId })
-      if (place === undefined) throw new Error('place === undefined')
-
-      await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
-
-      let message: string = `${Tg.x1_Format.bold('Need created')}\n\n`
-      message += Tg.x1_Helpers.getNeedString({
-        maxday,
+      const { id } = await ydb.needsInsert({
+        maxday, //
         maxprice,
-        personTgname: person.tgname,
-        placeName: place.name,
+        personId: person.id,
+        placeId,
         tgid,
       })
+
+      const need = await ydb.needsSelectById({ id })
+      if (need === undefined) throw new Error('need === undefined')
+
+      let message: string = `${Tg.x1_Format.bold('Need created')}\n\n`
+      message += Tg.x1_Helpers.getNeedString(need)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
@@ -747,10 +747,11 @@ class Tg {
 
       const { id } = Tg.x2_Actions.needsDelete2_commit.handler.parser(context.match)
 
+      await ydb.needsDelete({ id })
+
       const need = await ydb.needsSelectById({ id })
       if (need === undefined) throw new Error('need === undefined')
-
-      await ydb.needsDelete({ id })
+      if (need.deleted === undefined) throw new Error('need.deleted === undefined')
 
       let message: string = `${Tg.x1_Format.bold('Need deleted')}\n\n`
       message += Tg.x1_Helpers.getNeedString(need)
@@ -933,22 +934,18 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
-      const places = arrayToObject<Place, 'id'>('id')(
-        await ydb.placesSelect({ _limit: 64, _offset: 0 }),
-      )
+      const { id } = await ydb.tripsInsert({
+        ...trip, //
+        personId: person.id,
+        tgid,
+        tripPlaces,
+      })
 
-      await ydb.tripsInsert({ ...trip, personId: person.id, tgid, tripPlaces })
+      const trip2 = await ydb.tripsSelectById({ id })
+      if (trip2 === undefined) throw new Error('trip === undefined')
 
       let message: string = `${Tg.x1_Format.bold('Trip created')}\n\n`
-      message += Tg.x1_Helpers.getTripString({
-        ...trip,
-        personTgname: person.tgname,
-        tgid,
-        tripPlaces: tripPlaces.map((tripPlace) => ({
-          minprice: tripPlace.minprice,
-          placeName: places[tripPlace.placeId].name,
-        })),
-      })
+      message += Tg.x1_Helpers.getTripString(trip2)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],
@@ -1007,13 +1004,14 @@ class Tg {
 
       const { id } = Tg.x2_Actions.tripsDelete2_commit.handler.parser(context.match)
 
-      const trips = await ydb.tripsSelectById({ id })
-      if (trips[0] === undefined) throw new Error('trips[0] === undefined')
-
       await ydb.tripsDelete({ id })
 
+      const trip = await ydb.tripsSelectById({ id })
+      if (trip === undefined) throw new Error('trip === undefined')
+      if (trip.deleted === undefined) throw new Error('trip.deleted === undefined')
+
       let message: string = `${Tg.x1_Format.bold('Trip deleted')}\n\n`
-      message += Tg.x1_Helpers.getTripString(trips[0])
+      message += Tg.x1_Helpers.getTripString(trip)
 
       await Tg.x1_Helpers.reply(context, {
         keyboard: [[Tg.x2_Actions.index.button()]],

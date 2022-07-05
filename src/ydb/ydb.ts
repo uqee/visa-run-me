@@ -155,18 +155,23 @@ class Ydb {
 
   public async needsInsert(
     args: Pick<Need, 'maxday' | 'maxprice' | 'personId' | 'placeId' | 'tgid'>, //
-  ): Promise<void> {
+  ): Promise<Pick<Need, 'id'>> {
     const { maxday, maxprice, personId, placeId, tgid } = args
-    await this._execute(`
-      $id = select cast((max(id) ?? 0) + 1 as uint32) from needs with xlock;
-      insert into needs (
-        maxday, maxprice, personId, placeId,
-        created, deleted, id, tgid
-      ) values (
-        ${maxday}, ${maxprice}, ${personId}, ${placeId},
-        ${epochFromTimestamp()}, null, $id, ${tgid}
-      )
-    `)
+    return (
+      await this._execute<Pick<Need, 'id'>>(`
+        $id = select cast((max(id) ?? 0) + 1 as uint32) from needs with xlock;
+
+        insert into needs (
+          maxday, maxprice, personId, placeId,
+          created, deleted, id, tgid
+        ) values (
+          ${maxday}, ${maxprice}, ${personId}, ${placeId},
+          ${epochFromTimestamp()}, null, $id, ${tgid}
+        );
+
+        select $id as id;
+      `)
+    )[0]?.[0]
   }
 
   public async needsSelect(
@@ -220,18 +225,21 @@ class Ydb {
 
   public async personsInsert(
     args: Pick<Person, 'firstname' | 'lastname' | 'tgid' | 'tgname'>, //
-  ): Promise<void> {
+  ): Promise<Pick<Person, 'id'>> {
     const { firstname, lastname, tgid, tgname } = args
-    await this._execute(`
-      $id = select cast((max(id) ?? 0) + 1 as uint32) from persons with xlock;
-      insert into persons (
-        firstname, lastname, tgname,
-        created, deleted, id, tgid
-      ) values (
-        '${firstname}', ${Ydb.str(lastname)}, ${Ydb.str(tgname)},
-        ${epochFromTimestamp()}, null, $id, ${tgid}
-      )
-    `)
+    return (
+      await this._execute<Pick<Person, 'id'>>(`
+        $id = select cast((max(id) ?? 0) + 1 as uint32) from persons with xlock;
+        insert into persons (
+          firstname, lastname, tgname,
+          created, deleted, id, tgid
+        ) values (
+          '${firstname}', ${Ydb.str(lastname)}, ${Ydb.str(tgname)},
+          ${epochFromTimestamp()}, null, $id, ${tgid}
+        );
+        select $id as id;
+      `)
+    )[0]?.[0]
   }
 
   public async personsSelect(
@@ -306,36 +314,42 @@ class Ydb {
     `)
   }
 
-  public async tripsInsert(tripsInsertItem: TripsInsertItem): Promise<void> {
+  public async tripsInsert(
+    tripsInsertItem: TripsInsertItem, //
+  ): Promise<Pick<Trip, 'id'>> {
     const { capacity, day, personId, tgid, tripPlaces } = tripsInsertItem
     if (tripPlaces.length === 0) throw new Error('tripPlaces.length === 0')
     const created: Trip['created'] = epochFromTimestamp()
 
-    await this._execute(`
-      $tripId = select cast((max(id) ?? 0) + 1 as uint32) from trips with xlock;
-      $tripPlaceId = select cast((max(id) ?? 0) + 1 as uint32) from tripPlaces with xlock;
+    return (
+      await this._execute<Pick<Trip, 'id'>>(`
+        $tripId = select cast((max(id) ?? 0) + 1 as uint32) from trips with xlock;
+        $tripPlaceId = select cast((max(id) ?? 0) + 1 as uint32) from tripPlaces with xlock;
 
-      insert into trips (
-        capacity, day, personId,
-        created, deleted, id, tgid
-      ) values (
-        ${capacity}, ${day}, ${personId},
-        ${created}, null, $tripId, ${tgid}
-      );
+        insert into trips (
+          capacity, day, personId,
+          created, deleted, id, tgid
+        ) values (
+          ${capacity}, ${day}, ${personId},
+          ${created}, null, $tripId, ${tgid}
+        );
 
-      insert into tripPlaces (
-        minprice, placeId, tripId,
-        created, deleted, id, tgid
-      ) values ${tripPlaces
-        .map(
-          ({ minprice: tripPlaceMinprice, placeId }, index) =>
-            `(
-              ${tripPlaceMinprice}, ${placeId}, $tripId,
-              ${created}, null, cast($tripPlaceId+${index} as uint32), ${tgid}
-            )`,
-        )
-        .join(',')};
-    `)
+        insert into tripPlaces (
+          minprice, placeId, tripId,
+          created, deleted, id, tgid
+        ) values ${tripPlaces
+          .map(
+            ({ minprice: tripPlaceMinprice, placeId }, index) =>
+              `(
+                ${tripPlaceMinprice}, ${placeId}, $tripId,
+                ${created}, null, cast($tripPlaceId+${index} as uint32), ${tgid}
+              )`,
+          )
+          .join(',')};
+
+        select $tripId as id;
+      `)
+    )[0]?.[0]
   }
 
   public async tripsSelect(
@@ -372,7 +386,7 @@ class Ydb {
 
   public async tripsSelectById(
     args: Pick<Trip, 'id'>, //
-  ): Promise<TripsSelectItem[]> {
+  ): Promise<TripsSelectItem> {
     const { id } = args
     return tripSelectRowsToTripSelectDescrs(
       (
@@ -391,7 +405,7 @@ class Ydb {
             t.id == ${id}
         `)
       )[0],
-    )
+    )[0]
   }
 }
 
