@@ -1,4 +1,4 @@
--- drop table caches;
+drop table caches;
 drop table needs;
 drop table persons;
 drop table places;
@@ -9,13 +9,13 @@ commit;
 
 --
 
--- create table caches (
---   key string,
---   value string,
+create table caches (
+  key string,
+  value string,
 
---   created uint32,
---   primary key (key)
--- );
+  created uint32,
+  primary key (key)
+);
 
 create table needs (
   maxday uint32,
@@ -78,16 +78,9 @@ create table tripPlaces (
   deleted uint32,
   id uint32,
   tgid uint64,
-  index tripPlaces_tgid_idx global on (tgid),
+  index tripPlaces_tripId_idx global on (tripId),
   primary key (id)
 );
-
-commit;
-
---
-
-delete from persons;
-delete from places;
 
 commit;
 
