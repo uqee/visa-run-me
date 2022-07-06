@@ -7,9 +7,9 @@ import { Update } from '@grammyjs/types'
 import { Telegraf } from 'telegraf'
 
 import { arrayDeduplicate, epochFromTimestamp } from '../utils'
-import { Epoch, Person, Place, Tgid, ydb } from '../ydb'
+import { Epoch, Person, Place, Tgid, TripDto, TripPlaceDto, ydb } from '../ydb'
 import { Actions } from './actions'
-import { _Arrow, Chars, Helpers, Strings, TgActionButton, TgActionResponse } from './utils'
+import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionResponse } from './utils'
 
 class Tg {
   private static setupIndex(telegraf: Telegraf): void {
@@ -76,7 +76,7 @@ class Tg {
     telegraf.action(Actions.needsCreate1_places.handler.pattern, async (context) => {
       await Helpers.accept(context)
 
-      const _limit: number = 32
+      const _limit: number = Numbers.PLACES_SELECT_LIMIT
       const places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
 
@@ -153,19 +153,14 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
-      const { id } = await ydb.needsInsert({
-        maxday, //
-        maxprice,
-        personId: person.id,
-        placeId,
-        tgid,
-      })
+      const need1 = await ydb.needsInsert({ maxday, maxprice, personId: person.id, placeId, tgid })
+      if (need1 === undefined) throw new Error('need1 === undefined')
 
-      const need = await ydb.needsSelectById({ id })
-      if (need === undefined) throw new Error('need === undefined')
+      const need2 = await ydb.needsSelectById({ id: need1.id })
+      if (need2 === undefined) throw new Error('need2 === undefined')
 
       let message: string = Helpers.header(Strings.NEEDS, Strings.ADDITION, Strings.SUCCESSFUL)
-      message += `\n\n${Helpers.needToString(need)}`
+      message += `\n\n${Helpers.needToString(need2)}`
 
       await Helpers.reply(context, {
         keyboard: [[Actions.index.button()]],
@@ -181,14 +176,14 @@ class Tg {
       const tgid: Tgid = Helpers.getTgid(context)
       const { _offset } = Actions.needsDelete1_needs.handler.parser(context.match)
 
-      const _limit: number = 5
+      const _limit: number = Numbers.NEEDS_SELECT_LIMIT
       const needs = await ydb.needsSelect({ _limit, _offset, tgid })
 
       const needsButtons: TgActionButton[][] = Helpers.keyboard2d({
         buttons: needs.map((need) => {
           return Actions.needsDelete2_commit.button({ id: need.id })
         }),
-        columns: 2,
+        columns: 3,
       })
 
       const paginationButtons: Array<TgActionButton | undefined> = [
@@ -251,7 +246,7 @@ class Tg {
 
       const { _offset } = Actions.needsList.handler.parser(context.match)
 
-      const _limit: number = 5
+      const _limit: number = Numbers.NEEDS_SELECT_LIMIT
       const needs = await ydb.needsSelect({ _limit, _offset })
 
       const paginationButtons: Array<TgActionButton | undefined> = [
@@ -357,7 +352,7 @@ class Tg {
 
       const { trip, tripPlaces } = Actions.tripsCreate3_places.handler.parser(context.match)
 
-      const _limit: number = 32
+      const _limit: number = Numbers.PLACES_SELECT_LIMIT
       let places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
       if (places.length === _limit) console.warn('places.length === _limit')
 
@@ -376,7 +371,7 @@ class Tg {
       })
 
       const keyboard: TgActionButton[][] = []
-      if (tripPlaces.length < 9) {
+      if (tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP) {
         keyboard.push(...placesButtons)
       }
       if (tripPlaces.length > 0) {
@@ -384,11 +379,15 @@ class Tg {
       }
       keyboard.push([Actions.index.button()])
 
+      let message: string = Helpers.header(Strings.TRIPS, Strings.ADDITION)
+      message +=
+        tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP
+          ? '\n\nИз какого города (можно будет выбрать несколько) сможете забрать пассажиров?'
+          : 'Достигнут лимит по количеству городов на одну поездку, больше добавить нельзя.'
+
       await Helpers.reply(context, {
         keyboard,
-        message:
-          Helpers.header(Strings.TRIPS, Strings.ADDITION) + //
-          '\n\nИз какого города (можно будет выбрать несколько) сможете забрать пассажиров?',
+        message,
       })
     })
 
@@ -427,18 +426,16 @@ class Tg {
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')
 
-      const { id } = await ydb.tripsInsert({
-        ...trip, //
-        personId: person.id,
-        tgid,
-        tripPlaces,
-      })
+      const trip1 = await ydb.tripsInsert({ ...trip, personId: person.id, tgid }, tripPlaces)
+      if (trip1 === undefined) throw new Error('trip1 === undefined')
 
-      const trip2 = await ydb.tripsSelectById({ id })
-      if (trip2 === undefined) throw new Error('trip === undefined')
+      const trip2: TripDto | undefined = await ydb.tripsSelectById({ id: trip1.id })
+      if (trip2 === undefined) throw new Error('trip2 === undefined')
+
+      const tripPlaces2: TripPlaceDto[] = await ydb.tripPlacesSelect([trip2.id])
 
       let message: string = Helpers.header(Strings.TRIPS, Strings.ADDITION, Strings.SUCCESSFUL)
-      message += `\n\n${Helpers.tripToString(trip2)}`
+      message += `\n\n${Helpers.tripToString(trip2, tripPlaces2)}`
 
       await Helpers.reply(context, {
         keyboard: [[Actions.index.button()]],
@@ -454,15 +451,15 @@ class Tg {
       const tgid: Tgid = Helpers.getTgid(context)
       const { _offset } = Actions.tripsDelete1_trips.handler.parser(context.match)
 
-      const _limit: number = 10
-      const trips = await ydb.tripsSelect({ _limit, _offset, tgid })
-      const tripsLength: number = Helpers.getTripLength(trips)
+      const _limit: number = Numbers.TRIPS_SELECT_LIMIT
+      const trips: TripDto[] = await ydb.tripsSelect({ _limit, _offset, tgid })
+      const tripsPlaces: TripPlaceDto[] = await ydb.tripPlacesSelect(trips.map((trip) => trip.id))
 
       const tripsButtons: TgActionButton[][] = Helpers.keyboard2d({
         buttons: arrayDeduplicate(trips.map((trip) => trip.id)).map((tripId) => {
           return Actions.tripsDelete2_commit.button({ id: tripId })
         }),
-        columns: 2,
+        columns: 3,
       })
 
       const paginationButtons: Array<TgActionButton | undefined> = [
@@ -472,7 +469,7 @@ class Tg {
               _offset: _offset - _limit,
             })
           : undefined,
-        tripsLength === _limit
+        trips.length === _limit
           ? Actions.tripsDelete1_trips.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
@@ -485,10 +482,13 @@ class Tg {
         Strings.REMOVAL,
         Helpers.pageToString({ _limit, _offset }),
       )
-      if (tripsLength === 0) message += `\n\n${Strings.EMPTY_PAGE}`
+      if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {
-          message += `\n\n${Helpers.tripToString(trip)}`
+          message += `\n\n${Helpers.tripToString(
+            trip,
+            tripsPlaces.filter((tripPlace) => tripPlace.tripId === trip.id),
+          )}`
         }
       }
 
@@ -503,14 +503,15 @@ class Tg {
 
       const { id } = Actions.tripsDelete2_commit.handler.parser(context.match)
 
+      const trip: TripDto | undefined = await ydb.tripsSelectById({ id })
+      if (trip === undefined) throw new Error('trip === undefined')
+
+      const tripsPlaces: TripPlaceDto[] = await ydb.tripPlacesSelect([trip.id])
+
       await ydb.tripsDelete({ id })
 
-      const trip = await ydb.tripsSelectById({ id })
-      if (trip === undefined) throw new Error('trip === undefined')
-      if (trip.deleted === undefined) throw new Error('trip.deleted === undefined')
-
       let message: string = Helpers.header(Strings.TRIPS, Strings.REMOVAL, Strings.SUCCESSFUL)
-      message += `\n\n${Helpers.tripToString(trip)}`
+      message += `\n\n${Helpers.tripToString(trip, tripsPlaces)}`
 
       await Helpers.reply(context, {
         keyboard: [[Actions.index.button()]],
@@ -525,9 +526,9 @@ class Tg {
 
       const { _offset } = Actions.tripsList.handler.parser(context.match)
 
-      const _limit: number = 10
-      const trips = await ydb.tripsSelect({ _limit, _offset })
-      const tripsLength: number = Helpers.getTripLength(trips)
+      const _limit: number = Numbers.TRIPS_SELECT_LIMIT
+      const trips: TripDto[] = await ydb.tripsSelect({ _limit, _offset })
+      const tripsPlaces: TripPlaceDto[] = await ydb.tripPlacesSelect(trips.map((trip) => trip.id))
 
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
@@ -536,7 +537,7 @@ class Tg {
               _offset: _offset - _limit,
             })
           : undefined,
-        tripsLength === _limit
+        trips.length === _limit
           ? Actions.tripsList.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
@@ -549,10 +550,13 @@ class Tg {
         Strings.LIST,
         Helpers.pageToString({ _limit, _offset }),
       )
-      if (tripsLength === 0) message += `\n\n${Strings.EMPTY_PAGE}`
+      if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {
-          message += `\n\n${Helpers.tripToString(trip)}`
+          message += `\n\n${Helpers.tripToString(
+            trip,
+            tripsPlaces.filter((tripPlace) => tripPlace.tripId === trip.id),
+          )}`
         }
       }
 

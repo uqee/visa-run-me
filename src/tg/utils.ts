@@ -2,7 +2,7 @@ import { InlineKeyboardButton } from '@grammyjs/types'
 import { Context, Markup } from 'telegraf'
 
 import { epochToTimestamp } from '../utils'
-import { Epoch, NeedDto, Person, Place, Tgid, TripDto } from '../ydb'
+import { Epoch, NeedDto, Person, Place, Tgid, TripDto, TripPlaceDto } from '../ydb'
 
 //
 
@@ -131,12 +131,6 @@ const Helpers = {
     return tgid
   },
 
-  getTripLength: (tripDtos: TripDto[]): number => {
-    let length: number = 0
-    for (const tripDto of tripDtos) length += tripDto.tripPlaces.length
-    return length
-  },
-
   header: (header: string, sub?: string, subsub?: string): string => {
     let text: string = Format.bold(header)
     if (sub) text += ` ${Chars.x0_DOT} ${sub}`
@@ -209,10 +203,11 @@ const Helpers = {
   },
 
   tripToString: (
-    args: Partial<Pick<TripDto, 'id'>> &
-      Pick<TripDto, 'capacity' | 'day' | 'personTgname' | 'tgid' | 'tripPlaces'>,
+    args1: Partial<Pick<TripDto, 'id'>> &
+      Pick<TripDto, 'capacity' | 'day' | 'personTgname' | 'tgid'>,
+    args2: Array<Pick<TripPlaceDto, 'minprice' | 'placeId' | 'placeName'>>,
   ): string => {
-    const { capacity, day, id, personTgname, tgid, tripPlaces } = args
+    const { capacity, day, id, personTgname, tgid } = args1
     let message: string = ''
 
     message += Format.bold(Helpers.numberToString(id ?? '??'))
@@ -220,7 +215,7 @@ const Helpers = {
 
     message += `\n${Chars.x0_DOT} поездка ${Helpers.epochToString(day)}`
     message += `\n${Chars.x0_DOT} пассажиров ${capacity}`
-    for (const tripPlace of tripPlaces) {
+    for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
     }
@@ -233,7 +228,12 @@ const Helpers = {
   },
 } as const
 
-const Numbers = {} as const
+const Numbers = {
+  MAX_PLACES_PER_TRIP: 9,
+  NEEDS_SELECT_LIMIT: 6,
+  PLACES_SELECT_LIMIT: 32,
+  TRIPS_SELECT_LIMIT: 6,
+} as const
 
 const Strings = {
   ADD: 'Добавить',

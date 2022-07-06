@@ -78,16 +78,9 @@ create table tripPlaces (
   deleted uint32,
   id uint32,
   tgid uint64,
-  index tripPlaces_tgid_idx global on (tgid),
+  index tripPlaces_tripId_idx global on (tripId),
   primary key (id)
 );
-
-commit;
-
---
-
-delete from persons;
-delete from places;
 
 commit;
 
