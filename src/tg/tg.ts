@@ -61,9 +61,9 @@ class Tg {
       await Helpers.reply(context, {
         keyboard: [
           [
-            Actions.needsList.button({ _offset: 0 }),
             Actions.needsCreate1_places.button(),
             Actions.needsDelete1_needs.button({ _offset: 0 }),
+            Actions.needsList.button({ _offset: 0 }),
           ],
           [Actions.index.button()],
         ],
@@ -291,9 +291,9 @@ class Tg {
       await Helpers.reply(context, {
         keyboard: [
           [
-            Actions.tripsList.button({ _offset: 0 }),
             Actions.tripsCreate1_capacities.button(),
             Actions.tripsDelete1_trips.button({ _offset: 0 }),
+            Actions.tripsList.button({ _offset: 0 }),
           ],
           [Actions.index.button()],
         ],
