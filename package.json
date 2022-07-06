@@ -7,9 +7,9 @@
   },
   "devDependencies": {
     "@grammyjs/types": "2.8.1",
-    "@types/node": "18.0.1",
-    "@typescript-eslint/eslint-plugin": "5.30.4",
-    "@typescript-eslint/parser": "5.30.4",
+    "@types/node": "18.0.3",
+    "@typescript-eslint/eslint-plugin": "5.30.5",
+    "@typescript-eslint/parser": "5.30.5",
     "@yandex-cloud/nodejs-sdk": "2.1.1",
     "eslint": "8.19.0",
     "eslint-config-prettier": "8.5.0",
