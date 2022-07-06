@@ -1,6 +1,6 @@
 import { Ydb as Sdk } from 'ydb-sdk-lite'
 
-import { epochFromTimestamp } from '../utils'
+import { ElementOf, epochFromTimestamp } from '../utils'
 import { Cache, Need, Person, Place, Trip, TripPlace } from './ydb-tables'
 
 //
@@ -14,54 +14,51 @@ export interface YdbArgs {
 
 //
 
-export type NeedsSelectItem = Need & {
+export type NeedDto = Need & {
   personTgname: Person['tgname']
   placeName: Place['name']
 }
 
-type TripsInsertItem = Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'> & {
-  tripPlaces: Array<{
-    minprice: TripPlace['minprice']
-    placeId: Place['id']
-  }>
-}
-
-export type TripsSelectItem = Trip & {
+export type TripDto = Trip & {
   personTgname: Person['tgname']
   tripPlaces: Array<{
     minprice: TripPlace['minprice']
+    placeId: TripPlace['placeId']
     placeName: Place['name']
   }>
 }
 
-type TripsSelectRow = Trip & {
+type TripRow = Trip & {
   personTgname: Person['tgname']
   placeName: Place['name']
   tripPlaceMinprice: TripPlace['minprice']
+  tripPlacePlaceId: TripPlace['placeId']
 }
 
-const tripSelectRowsToTripSelectDescrs = (rows: TripsSelectRow[]): TripsSelectItem[] => {
-  const items: TripsSelectItem[] = []
+const tripRowsToDtos = (rows: TripRow[]): TripDto[] => {
+  const dtos: TripDto[] = []
   for (const row of rows) {
-    const last: TripsSelectItem | undefined = items[items.length - 1]
+    const last: TripDto | undefined = dtos[dtos.length - 1]
     if (row.id === last?.id) {
       last.tripPlaces.push({
         minprice: row.tripPlaceMinprice,
+        placeId: row.tripPlacePlaceId,
         placeName: row.placeName,
       })
     } else {
-      items.push({
+      dtos.push({
         ...row,
         tripPlaces: [
           {
             minprice: row.tripPlaceMinprice,
+            placeId: row.tripPlacePlaceId,
             placeName: row.placeName,
           },
         ],
       })
     }
   }
-  return items
+  return dtos
 }
 
 //
@@ -176,10 +173,10 @@ class Ydb {
 
   public async needsSelect(
     args: YdbArgs & Partial<Pick<Need, 'tgid'>>, //
-  ): Promise<NeedsSelectItem[]> {
+  ): Promise<NeedDto[]> {
     const { _limit, _offset, tgid } = args
     return (
-      await this._execute<NeedsSelectItem>(`
+      await this._execute<NeedDto>(`
         select
           n.*,
           pe.tgname as personTgname,
@@ -203,10 +200,10 @@ class Ydb {
 
   public async needsSelectById(
     args: Pick<Need, 'id'>, //
-  ): Promise<NeedsSelectItem | undefined> {
+  ): Promise<NeedDto | undefined> {
     const { id } = args
     return (
-      await this._execute<NeedsSelectItem | undefined>(`
+      await this._execute<NeedDto | undefined>(`
         select
           n.*,
           pe.tgname as personTgname,
@@ -315,9 +312,11 @@ class Ydb {
   }
 
   public async tripsInsert(
-    tripsInsertItem: TripsInsertItem, //
+    args: Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'> & {
+      tripPlaces: Array<Pick<ElementOf<TripDto['tripPlaces']>, 'minprice' | 'placeId'>>
+    },
   ): Promise<Pick<Trip, 'id'>> {
-    const { capacity, day, personId, tgid, tripPlaces } = tripsInsertItem
+    const { capacity, day, personId, tgid, tripPlaces } = args
     if (tripPlaces.length === 0) throw new Error('tripPlaces.length === 0')
     const created: Trip['created'] = epochFromTimestamp()
 
@@ -354,16 +353,17 @@ class Ydb {
 
   public async tripsSelect(
     args: YdbArgs & Partial<Pick<Trip, 'tgid'>>, //
-  ): Promise<TripsSelectItem[]> {
+  ): Promise<TripDto[]> {
     const { _limit, _offset, tgid } = args
-    return tripSelectRowsToTripSelectDescrs(
+    return tripRowsToDtos(
       (
-        await this._execute<TripsSelectRow>(`
+        await this._execute<TripRow>(`
           select
             t.*,
             pe.tgname as personTgname,
             pl.name as placeName,
-            tp.minprice as tripPlaceMinprice
+            tp.minprice as tripPlaceMinprice,
+            tp.placeId as tripPlacePlaceId
           from
             trips as t
             left join persons as pe on pe.tgid = t.tgid
@@ -386,16 +386,17 @@ class Ydb {
 
   public async tripsSelectById(
     args: Pick<Trip, 'id'>, //
-  ): Promise<TripsSelectItem> {
+  ): Promise<TripDto> {
     const { id } = args
-    return tripSelectRowsToTripSelectDescrs(
+    return tripRowsToDtos(
       (
-        await this._execute<TripsSelectRow>(`
+        await this._execute<TripRow>(`
           select
             t.*,
             pe.tgname as personTgname,
             pl.name as placeName,
-            tp.minprice as tripPlaceMinprice
+            tp.minprice as tripPlaceMinprice,
+            tp.placeId as tripPlacePlaceId
           from
             trips as t
             left join persons as pe on pe.tgid = t.tgid

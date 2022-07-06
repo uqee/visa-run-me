@@ -1,4 +1,4 @@
--- drop table caches;
+drop table caches;
 drop table needs;
 drop table persons;
 drop table places;
@@ -9,13 +9,13 @@ commit;
 
 --
 
--- create table caches (
---   key string,
---   value string,
+create table caches (
+  key string,
+  value string,
 
---   created uint32,
---   primary key (key)
--- );
+  created uint32,
+  primary key (key)
+);
 
 create table needs (
   maxday uint32,

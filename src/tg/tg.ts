@@ -11,13 +11,13 @@ import { arrayDeduplicate, epochFromTimestamp, epochToTimestamp } from '../utils
 import {
   Epoch,
   Need,
-  NeedsSelectItem,
+  NeedDto,
   Person,
   Place,
   Tgid,
   Trip,
+  TripDto,
   TripPlace,
-  TripsSelectItem,
   ydb,
   YdbArgs,
 } from '../ydb'
@@ -157,8 +157,8 @@ class Tg {
     },
 
     getNeedString: (
-      needsSelectItem: Partial<Pick<NeedsSelectItem, 'id'>> &
-        Pick<NeedsSelectItem, 'maxday' | 'maxprice' | 'personTgname' | 'placeName' | 'tgid'>,
+      needsSelectItem: Partial<Pick<NeedDto, 'id'>> &
+        Pick<NeedDto, 'maxday' | 'maxprice' | 'personTgname' | 'placeName' | 'tgid'>,
     ): string => {
       const { id, maxday, maxprice, personTgname, placeName, tgid } = needsSelectItem
       let message: string = ''
@@ -181,8 +181,8 @@ class Tg {
     },
 
     getTripString: (
-      tripsSelectItem: Partial<Pick<TripsSelectItem, 'id'>> &
-        Pick<TripsSelectItem, 'capacity' | 'day' | 'personTgname' | 'tgid' | 'tripPlaces'>,
+      tripsSelectItem: Partial<Pick<TripDto, 'id'>> &
+        Pick<TripDto, 'capacity' | 'day' | 'personTgname' | 'tgid' | 'tripPlaces'>,
     ): string => {
       const { capacity, day, id, personTgname, tgid, tripPlaces } = tripsSelectItem
       let message: string = ''
