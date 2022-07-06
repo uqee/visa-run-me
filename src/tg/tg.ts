@@ -103,7 +103,7 @@ class Tg {
       const dayInMilliseconds: number = 24 * 60 * 60 * 1000
       const today: number = Helpers.endOfDay(Date.now())
       const maxdaysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((days) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
           const maxday: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Actions.needsCreate3_maxprices.button({ maxday, placeId })
         }),
@@ -329,7 +329,7 @@ class Tg {
       const dayInMilliseconds: number = 24 * 60 * 60 * 1000
       const today: number = Helpers.endOfDay(Date.now())
       const daysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((days) => {
+        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
           const day: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
           return Actions.tripsCreate3_places.button({
             trip: { capacity, day },
@@ -383,7 +383,8 @@ class Tg {
       message +=
         tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP
           ? '\n\nИз какого города (можно будет выбрать несколько) сможете забрать пассажиров?'
-          : 'Достигнут лимит по количеству городов на одну поездку, больше добавить нельзя.'
+          : '\n\nДостигнут лимит по количеству городов на одну поездку, больше добавить нельзя.'
+      message += '\n\nЕсли закончили добавлять города, нажмите кнопку "Сохранить".'
 
       await Helpers.reply(context, {
         keyboard,

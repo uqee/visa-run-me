@@ -229,10 +229,10 @@ const Helpers = {
 } as const
 
 const Numbers = {
-  MAX_PLACES_PER_TRIP: 9,
-  NEEDS_SELECT_LIMIT: 6,
+  MAX_PLACES_PER_TRIP: 6,
+  NEEDS_SELECT_LIMIT: 3,
   PLACES_SELECT_LIMIT: 32,
-  TRIPS_SELECT_LIMIT: 6,
+  TRIPS_SELECT_LIMIT: 3,
 } as const
 
 const Strings = {
