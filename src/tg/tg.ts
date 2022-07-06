@@ -61,9 +61,9 @@ class Tg {
       await Helpers.reply(context, {
         keyboard: [
           [
+            Actions.needsList.button({ _offset: 0 }),
             Actions.needsCreate1_places.button(),
             Actions.needsDelete1_needs.button({ _offset: 0 }),
-            Actions.needsList.button({ _offset: 0 }),
           ],
           [Actions.index.button()],
         ],
@@ -296,9 +296,9 @@ class Tg {
       await Helpers.reply(context, {
         keyboard: [
           [
+            Actions.tripsList.button({ _offset: 0 }),
             Actions.tripsCreate1_capacities.button(),
             Actions.tripsDelete1_trips.button({ _offset: 0 }),
-            Actions.tripsList.button({ _offset: 0 }),
           ],
           [Actions.index.button()],
         ],
@@ -322,7 +322,7 @@ class Tg {
         keyboard: [...capacitiesButtons, [Actions.index.button()]],
         message:
           Helpers.header(Strings.TRIPS, Strings.ADDITION) + //
-          '\n\nСколько максимум пассажиров вы готовы взять?',
+          '\n\nСколько пассажиров планируете взять?',
       })
     })
 
@@ -456,6 +456,7 @@ class Tg {
 
       const _limit: number = 10
       const trips = await ydb.tripsSelect({ _limit, _offset, tgid })
+      const tripsLength: number = Helpers.getTripLength(trips)
 
       const tripsButtons: TgActionButton[][] = Helpers.keyboard2d({
         buttons: arrayDeduplicate(trips.map((trip) => trip.id)).map((tripId) => {
@@ -471,7 +472,7 @@ class Tg {
               _offset: _offset - _limit,
             })
           : undefined,
-        trips.length === _limit
+        tripsLength === _limit
           ? Actions.tripsDelete1_trips.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
@@ -484,7 +485,7 @@ class Tg {
         Strings.REMOVAL,
         Helpers.pageToString({ _limit, _offset }),
       )
-      if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
+      if (tripsLength === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {
           message += `\n\n${Helpers.tripToString(trip)}`
@@ -526,6 +527,7 @@ class Tg {
 
       const _limit: number = 10
       const trips = await ydb.tripsSelect({ _limit, _offset })
+      const tripsLength: number = Helpers.getTripLength(trips)
 
       const paginationButtons: Array<TgActionButton | undefined> = [
         _offset - _limit >= 0
@@ -534,7 +536,7 @@ class Tg {
               _offset: _offset - _limit,
             })
           : undefined,
-        trips.length === _limit
+        tripsLength === _limit
           ? Actions.tripsList.button({
               _arrow: _Arrow.RIGHT, //
               _offset: _offset + _limit,
@@ -547,7 +549,7 @@ class Tg {
         Strings.LIST,
         Helpers.pageToString({ _limit, _offset }),
       )
-      if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
+      if (tripsLength === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {
           message += `\n\n${Helpers.tripToString(trip)}`

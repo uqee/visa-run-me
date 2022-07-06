@@ -131,10 +131,16 @@ const Helpers = {
     return tgid
   },
 
+  getTripLength: (tripDtos: TripDto[]): number => {
+    let length: number = 0
+    for (const tripDto of tripDtos) length += tripDto.tripPlaces.length
+    return length
+  },
+
   header: (header: string, sub?: string, subsub?: string): string => {
     let text: string = Format.bold(header)
-    if (sub) text += `\n${Chars.x0_DOT} ${sub}`
-    if (subsub) text += `\n${Chars.x0_DOT} ${subsub}`
+    if (sub) text += ` ${Chars.x0_DOT} ${sub}`
+    if (subsub) text += ` ${Chars.x0_DOT} ${subsub}`
     return text
   },
 
@@ -153,13 +159,11 @@ const Helpers = {
     const { id, maxday, maxprice, personTgname, placeName, tgid } = args
     let message: string = ''
 
-    message += `${Helpers.numberToString(id ?? '??')} ${Format.spoiler(
-      Helpers.userLink(personTgname, tgid),
-    )}\n`
+    message += Format.bold(Helpers.numberToString(id ?? '??'))
+    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
-    message += `${Chars.x0_DOT} из ${placeName}\n`
-    message += `${Chars.x0_DOT} до ${Helpers.epochToString(maxday)}\n`
-    message += `${Chars.x0_DOT} за ${Helpers.priceToString(maxprice)}\n`
+    message += `\n${Chars.x0_DOT} до ${Helpers.epochToString(maxday)}`
+    message += `\n${Chars.x0_DOT} из ${placeName} за ${Helpers.priceToString(maxprice)}`
 
     return message
   },
@@ -174,7 +178,7 @@ const Helpers = {
     return `${Strings.PAGE} ${n}`
   },
 
-  paginationText: (_arrow?: _Arrow): string => {
+  paginationToString: (_arrow?: _Arrow): string => {
     if (_arrow === _Arrow.LEFT) return `${Chars.x0_ARROW_LEFT} Назад`
     if (_arrow === _Arrow.RIGHT) return `Вперед ${Chars.x0_ARROW_RIGHT}`
     return Chars.x0_ARROW_DOWN
@@ -211,16 +215,14 @@ const Helpers = {
     const { capacity, day, id, personTgname, tgid, tripPlaces } = args
     let message: string = ''
 
-    message += `${Helpers.numberToString(id ?? '??')} ${Format.spoiler(
-      Helpers.userLink(personTgname, tgid),
-    )}\n`
+    message += Format.bold(Helpers.numberToString(id ?? '??'))
+    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
-    message += `${Chars.x0_DOT} выезд ${Helpers.epochToString(day)}\n`
-    message += `${Chars.x0_DOT} пассажиров ${capacity}\n`
+    message += `\n${Chars.x0_DOT} поездка ${Helpers.epochToString(day)}`
+    message += `\n${Chars.x0_DOT} пассажиров ${capacity}`
     for (const tripPlace of tripPlaces) {
-      message += `${Chars.x0_DOT} `
-      message += `из ${tripPlace.placeName} `
-      message += `за ${Helpers.priceToString(tripPlace.minprice)}\n`
+      message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
+      message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
     }
 
     return message

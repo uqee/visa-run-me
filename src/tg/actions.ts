@@ -84,7 +84,7 @@ const Actions = (() => {
   const needsDelete1_needs: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
     button: ($) => ({
       payload: `nd1:${$._offset}`,
-      text: $._arrow === undefined ? Strings.REMOVE : Helpers.paginationText($._arrow),
+      text: $._arrow === undefined ? Strings.REMOVE : Helpers.paginationToString($._arrow),
     }),
     handler: {
       parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -108,7 +108,7 @@ const Actions = (() => {
   const needsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
     button: ($) => ({
       payload: `nl:${$._offset}`,
-      text: $._arrow === undefined ? Strings.LIST : Helpers.paginationText($._arrow),
+      text: $._arrow === undefined ? Strings.LIST : Helpers.paginationToString($._arrow),
     }),
     handler: {
       parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -235,7 +235,7 @@ const Actions = (() => {
   const tripsDelete1_trips: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
     button: ($) => ({
       payload: `td1:${$._offset}`,
-      text: $._arrow === undefined ? Strings.REMOVE : Helpers.paginationText($._arrow),
+      text: $._arrow === undefined ? Strings.REMOVE : Helpers.paginationToString($._arrow),
     }),
     handler: {
       parser: ([, _offset]) => ({ _offset: +_offset }),
@@ -259,7 +259,7 @@ const Actions = (() => {
   const tripsList: TgAction<Pick<YdbArgs, '_offset'> & _WithArrow> = {
     button: ($) => ({
       payload: `tl:${$._offset}`,
-      text: $._arrow === undefined ? Strings.LIST : Helpers.paginationText($._arrow),
+      text: $._arrow === undefined ? Strings.LIST : Helpers.paginationToString($._arrow),
     }),
     handler: {
       parser: ([, _offset]) => ({ _offset: +_offset }),
