@@ -8,12 +8,13 @@ import { Telegraf } from 'telegraf'
 
 import { arrayDeduplicate, epochFromTimestamp } from '../utils'
 import { Epoch, Need, Person, Place, Tgid, Trip, TripPlace, ydb, YdbArgs } from '../ydb'
-import { Chars, Strings } from './constants'
 import {
   _Arrow,
   _WithArrow,
   _WithPlaceName,
+  Chars,
   Helpers,
+  Strings,
   TgAction,
   TgActionButton,
   TgActionResponse,
@@ -315,11 +316,13 @@ class Tg {
   })()
 
   private static setupIndex(telegraf: Telegraf): void {
-    const help: string =
-      'Для управления ботом используйте кнопки под сообщениями. Если вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений) или командой /start (отправить сообщением).'
+    const help: string = `Для управления ботом используйте кнопки под сообщениями.\n\nЕсли вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте\n\n${Chars.x0_DOT} перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений)\n\n${Chars.x0_DOT} или отправить команду /start (простым сообщением).`
     const indexActionResponse: TgActionResponse = {
-      keyboard: [[Tg.Actions.needs.button(), Tg.Actions.trips.button()]],
-      message: `${Helpers.header('Домашняя страница')}\n\n${help}`,
+      keyboard: [
+        [Tg.Actions.needs.button(), Tg.Actions.trips.button()],
+        [Tg.Actions.index.button()],
+      ],
+      message: Helpers.header('Дом') + `\n\n${help}`,
     }
 
     telegraf.start(async (context) => {
@@ -484,7 +487,7 @@ class Tg {
       const tgid: Tgid = Helpers.getTgid(context)
       const { _offset } = Tg.Actions.needsDelete1_needs.handler.parser(context.match)
 
-      const _limit: number = 9
+      const _limit: number = 5
       const needs = await ydb.needsSelect({ _limit, _offset, tgid })
 
       const needsButtons: TgActionButton[][] = Helpers.keyboard2d({
@@ -509,7 +512,11 @@ class Tg {
           : undefined,
       ]
 
-      let message: string = Helpers.header(Strings.NEEDS, Strings.REMOVAL, Strings.CHOOSE_NUMBER)
+      let message: string = Helpers.header(
+        Strings.NEEDS,
+        Strings.REMOVAL,
+        Helpers.pageToString({ _limit, _offset }),
+      )
       if (needs.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const need of needs) {
@@ -550,7 +557,7 @@ class Tg {
 
       const { _offset } = Tg.Actions.needsList.handler.parser(context.match)
 
-      const _limit: number = 9
+      const _limit: number = 5
       const needs = await ydb.needsSelect({ _limit, _offset })
 
       const paginationButtons: Array<TgActionButton | undefined> = [
@@ -568,7 +575,11 @@ class Tg {
           : undefined,
       ]
 
-      let message: string = Helpers.header(Strings.NEEDS, Strings.LIST)
+      let message: string = Helpers.header(
+        Strings.NEEDS,
+        Strings.LIST,
+        Helpers.pageToString({ _limit, _offset }),
+      )
       if (needs.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const need of needs) {
@@ -749,7 +760,7 @@ class Tg {
       const tgid: Tgid = Helpers.getTgid(context)
       const { _offset } = Tg.Actions.tripsDelete1_trips.handler.parser(context.match)
 
-      const _limit: number = 9
+      const _limit: number = 10
       const trips = await ydb.tripsSelect({ _limit, _offset, tgid })
 
       const tripsButtons: TgActionButton[][] = Helpers.keyboard2d({
@@ -774,7 +785,11 @@ class Tg {
           : undefined,
       ]
 
-      let message: string = Helpers.header(Strings.TRIPS, Strings.REMOVAL, Strings.CHOOSE_NUMBER)
+      let message: string = Helpers.header(
+        Strings.TRIPS,
+        Strings.REMOVAL,
+        Helpers.pageToString({ _limit, _offset }),
+      )
       if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {
@@ -815,7 +830,7 @@ class Tg {
 
       const { _offset } = Tg.Actions.tripsList.handler.parser(context.match)
 
-      const _limit: number = 9
+      const _limit: number = 10
       const trips = await ydb.tripsSelect({ _limit, _offset })
 
       const paginationButtons: Array<TgActionButton | undefined> = [
@@ -833,7 +848,11 @@ class Tg {
           : undefined,
       ]
 
-      let message: string = Helpers.header(Strings.TRIPS, Strings.LIST)
+      let message: string = Helpers.header(
+        Strings.TRIPS,
+        Strings.LIST,
+        Helpers.pageToString({ _limit, _offset }),
+      )
       if (trips.length === 0) message += `\n\n${Strings.EMPTY_PAGE}`
       else {
         for (const trip of trips) {

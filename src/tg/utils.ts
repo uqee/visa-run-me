@@ -3,7 +3,6 @@ import { Context, Markup } from 'telegraf'
 
 import { epochToTimestamp } from '../utils'
 import { Epoch, NeedDto, Person, Place, Tgid, TripDto } from '../ydb'
-import { Chars, Strings } from './constants'
 
 //
 
@@ -42,6 +41,53 @@ export interface _WithPlaceName {
 }
 
 //
+
+const Chars = {
+  x0_ARROW_DOWN: '↓',
+  x0_ARROW_LEFT: '←',
+  x0_ARROW_RIGHT: '→',
+  // x0_ARROW_UP: '↑',
+  // x0_CHECK: '✓',
+  // x0_CIRCLE: '◯',
+  // x0_CROSS: '╳',
+  x0_DOT: '⋅',
+  // x0_EM_DASH: '—',
+  // x0_EN_DASH: '–',
+  // x0_MINUS: '−',
+  // x0_MULT: '×',
+  x0_NUMBER: '№',
+  // x0_PLUS: '+',
+  // x0_QUOTE_DOUBLE_LEFT: '«',
+  // x0_QUOTE_DOUBLE_RIGHT: '»',
+  // x0_QUOTE_LEFT: '‹',
+  // x0_QUOTE_RIGHT: '›',
+  x1_EURO: '€',
+  // x1_INFINITY: '∞',
+  // x2_ARROWHEAD: '➤',
+  // x2_BULLET: '•',
+  // x2_CHEVRON_LEFT: '❮',
+  // x2_CHEVRON_RIGHT: '❯',
+  // x2_MINUS: '➖',
+  // x2_MULT: '✖',
+  // x2_PLUS: '➕',
+  // x2_QUOTE_CLOSE: '❜',
+  // x2_QUOTE_DOUBLE_CLOSE: '❞',
+  // x2_QUOTE_DOUBLE_OPEN: '❝',
+  // x2_QUOTE_OPEN: '❛',
+  // x2_STAR: '★',
+  // x2_TRIANGLE_DOWN: '▼',
+  // x2_TRIANGLE_LEFT: '◀',
+  // x2_TRIANGLE_RIGHT: '▶',
+  // x2_TRIANGLE_UP: '▲',
+  // x3_CHECK: '✅',
+  // x3_CROSS: '❌',
+  // x3_EXCLAMATION: '❗',
+  x3_HEART: '♥',
+  // x3_HOURGLASS: '⏳',
+  // x3_LIKE: '👍',
+  // x3_QUESTION: '❓',
+  // x3_WTF: '⁉',
+} as const
 
 const Format = {
   bold: (s: string): string => `<b>${s}</b>`,
@@ -87,8 +133,8 @@ const Helpers = {
 
   header: (header: string, sub?: string, subsub?: string): string => {
     let text: string = Format.bold(header)
-    if (sub) text += ` ${Chars.x0_DOT} ${sub}`
-    if (subsub) text += ` ${Chars.x0_DOT} ${subsub}`
+    if (sub) text += `\n${Chars.x0_DOT} ${sub}`
+    if (subsub) text += `\n${Chars.x0_DOT} ${subsub}`
     return text
   },
 
@@ -120,6 +166,12 @@ const Helpers = {
 
   numberToString: (number: number | string): string => {
     return `${Chars.x0_NUMBER} ${number}`
+  },
+
+  pageToString: (args: { _limit: number; _offset: number }): string => {
+    const { _limit, _offset } = args
+    const n: number = Math.round(_offset / _limit) + 1
+    return `${Strings.PAGE} ${n}`
   },
 
   paginationText: (_arrow?: _Arrow): string => {
@@ -179,4 +231,34 @@ const Helpers = {
   },
 } as const
 
-export { Format, Helpers }
+const Numbers = {} as const
+
+const Strings = {
+  ADD: 'Добавить',
+  ADDITION: 'Добавление',
+  EMPTY_PAGE: 'Пустая страница',
+  LIST: 'Список',
+  MONTH_NAMES: {
+    '01': 'января',
+    '02': 'февраля',
+    '03': 'марта',
+    '04': 'апреля',
+    '05': 'мая',
+    '06': 'июня',
+    '07': 'июля',
+    '08': 'августа',
+    '09': 'сентября',
+    10: 'октября',
+    11: 'ноября',
+    12: 'декабря',
+  } as Record<string, string>,
+  NEEDS: 'Заявки',
+  PAGE: 'Страница',
+  REMOVAL: 'Удаление',
+  REMOVE: 'Удалить',
+  SAVE: 'Сохранить',
+  SUCCESSFUL: 'Успешно',
+  TRIPS: 'Поездки',
+} as const
+
+export { Chars, Format, Helpers, Numbers, Strings }
