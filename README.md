@@ -1,5 +1,8 @@
 # visa-run-me
 
+дни недели
+сорт по названию города
+
 ## Manuals
 
     https://cloud.yandex.com/docs/functions/tutorials/telegram-bot-serverless

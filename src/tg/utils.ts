@@ -113,8 +113,10 @@ const Helpers = {
   },
 
   epochToString: (epoch: Epoch): string => {
-    const [m, d] = new Date(epochToTimestamp(epoch)).toISOString().substring(5, 10).split('-')
-    return `${+d} ${Strings.MONTH_NAMES[m]}`
+    const date: Date = new Date(epochToTimestamp(epoch))
+    const dayOfWeek: string = Strings.DAYS[date.getUTCDay()]
+    const [month, day] = date.toISOString().substring(5, 10).split('-')
+    return `${dayOfWeek}, ${+day} ${Strings.MONTHS[month]}`
   },
 
   // escape: (message: string): string => {
@@ -238,9 +240,18 @@ const Numbers = {
 const Strings = {
   ADD: 'Добавить',
   ADDITION: 'Добавление',
+  DAYS: {
+    0: 'пн',
+    1: 'вт',
+    2: 'ср',
+    3: 'чт',
+    4: 'пт',
+    5: 'сб',
+    6: 'вс',
+  } as Record<string, string>,
   EMPTY_PAGE: 'Пустая страница',
   LIST: 'Список',
-  MONTH_NAMES: {
+  MONTHS: {
     '01': 'января',
     '02': 'февраля',
     '03': 'марта',

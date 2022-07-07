@@ -320,7 +320,7 @@ class Ydb {
         and t.deleted is null
       order by
         tripId desc,
-        id desc
+        placeId asc
     `)
     )[0]
   }
