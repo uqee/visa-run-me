@@ -260,9 +260,9 @@ const Helpers = {
 
 const Numbers = {
   MAX_PLACES_PER_TRIP: 9,
-  NEEDS_SELECT_LIMIT: 3,
+  NEEDS_SELECT_LIMIT: 6,
   PLACES_SELECT_LIMIT: 32,
-  TRIPS_SELECT_LIMIT: 3,
+  TRIPS_SELECT_LIMIT: 6,
 } as const
 
 const Strings = {
