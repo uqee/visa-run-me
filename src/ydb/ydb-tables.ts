@@ -36,7 +36,6 @@ export interface Place extends Table {
 }
 
 export interface Trip extends Table {
-  capacity: number
   day: Epoch
   personId: Id
 }

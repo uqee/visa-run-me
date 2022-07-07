@@ -122,17 +122,17 @@ const Helpers = {
     return buttons
   },
 
-  declention: (n: number, one: string, few: string, many: string): string => {
-    let declention: string = many
-    if (Math.round(n) !== n) declention = few
-    else {
-      const units = Math.abs(n % 10)
-      const tens = Math.abs(n % 100)
-      if (units === 1 && tens !== 11) declention = one
-      else if (2 <= units && units <= 4 && (tens < 10 || 20 <= tens)) declention = few
-    }
-    return declention
-  },
+  // declention: (n: number, one: string, few: string, many: string): string => {
+  //   let declention: string = many
+  //   if (Math.round(n) !== n) declention = few
+  //   else {
+  //     const units = Math.abs(n % 10)
+  //     const tens = Math.abs(n % 100)
+  //     if (units === 1 && tens !== 11) declention = one
+  //     else if (units >= 2 && units <= 4 && (tens < 10 || tens >= 20)) declention = few
+  //   }
+  //   return declention
+  // },
 
   endOfDay: (timestamp: number): number => {
     const endOfDay = new Date(timestamp)
@@ -235,23 +235,16 @@ const Helpers = {
   },
 
   tripToString: (
-    args1: Partial<Pick<TripDto, 'id'>> &
-      Pick<TripDto, 'capacity' | 'day' | 'personTgname' | 'tgid'>,
+    args1: Partial<Pick<TripDto, 'id'>> & Pick<TripDto, 'day' | 'personTgname' | 'tgid'>,
     args2: Array<Pick<TripPlaceDto, 'minprice' | 'placeId' | 'placeName'>>,
   ): string => {
-    const { capacity, day, id, personTgname, tgid } = args1
+    const { day, id, personTgname, tgid } = args1
     let message: string = ''
 
     message += Format.bold(Helpers.numberToString(id ?? '??'))
     message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
     message += `\n${Chars.x0_DOT} ${Helpers.epochToString(day)}`
-    message += `\n${Chars.x0_DOT} ${capacity} ${Helpers.declention(
-      capacity,
-      'пассажир',
-      'пассажира',
-      'пассажиров',
-    )}`
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
@@ -266,7 +259,7 @@ const Helpers = {
 } as const
 
 const Numbers = {
-  MAX_PLACES_PER_TRIP: 6,
+  MAX_PLACES_PER_TRIP: 9,
   NEEDS_SELECT_LIMIT: 3,
   PLACES_SELECT_LIMIT: 32,
   TRIPS_SELECT_LIMIT: 3,
@@ -275,6 +268,15 @@ const Numbers = {
 const Strings = {
   ADD: 'Добавить',
   ADDITION: 'Добавление',
+  DAYS_FULL: {
+    0: 'понедельник',
+    1: 'вторник',
+    2: 'среда',
+    3: 'четверг',
+    4: 'пятница',
+    5: 'суббота',
+    6: 'воскресенье',
+  } as Record<string, string>,
   DAYS_SHORT: {
     0: 'пн',
     1: 'вт',
@@ -284,15 +286,6 @@ const Strings = {
     5: 'сб',
     6: 'вс',
   } as Record<string, string>,
-  // DAYS_FULL: {
-  //   0: 'понедельник',
-  //   1: 'вторник',
-  //   2: 'среда',
-  //   3: 'четверг',
-  //   4: 'пятница',
-  //   5: 'суббота',
-  //   6: 'воскресенье',
-  // } as Record<string, string>,
   EMPTY_PAGE: 'Пустая страница',
   LIST: 'Список',
   MONTHS: {
