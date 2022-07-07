@@ -101,7 +101,7 @@ class Tg {
       const { placeId } = Actions.needsCreate2_maxdays.handler.parser(context.match)
 
       const maxdaysButtons: TgActionButton[][] = Helpers.calendar({
-        days: 12,
+        days: 14,
         epochToButton: (epoch) =>
           Actions.needsCreate3_maxprices.button({
             maxday: epoch,
@@ -306,7 +306,7 @@ class Tg {
       await Helpers.accept(context)
 
       const daysButtons: TgActionButton[][] = Helpers.calendar({
-        days: 12,
+        days: 14,
         epochToButton: (epoch) =>
           Actions.tripsCreate2_places.button({
             trip: { day: epoch },

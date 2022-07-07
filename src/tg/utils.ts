@@ -185,11 +185,10 @@ const Helpers = {
     const { id, maxday, maxprice, personTgname, placeName, tgid } = args
     let message: string = ''
 
-    message += Format.bold(Helpers.numberToString(id ?? '??'))
-    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
-
-    message += `\n${Chars.x0_DOT} до ${Helpers.epochToString(maxday)}`
-    message += `\n${Chars.x0_DOT} из ${placeName} за ${Helpers.priceToString(maxprice)}`
+    message += `${Format.bold(Helpers.epochToString(maxday))} (до)`
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id ?? '??')}`
+    message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
+    message += `\n${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
     return message
   },
@@ -241,14 +240,15 @@ const Helpers = {
     const { day, id, personTgname, tgid } = args1
     let message: string = ''
 
-    message += Format.bold(Helpers.numberToString(id ?? '??'))
-    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
+    message += Format.bold(Helpers.epochToString(day))
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id ?? '??')}`
 
-    message += `\n${Chars.x0_DOT} ${Helpers.epochToString(day)}`
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
     }
+
+    message += `\n${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
     return message
   },
