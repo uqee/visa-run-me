@@ -1,7 +1,7 @@
 import { InlineKeyboardButton } from '@grammyjs/types'
 import { Context, Markup } from 'telegraf'
 
-import { epochToTimestamp } from '../utils'
+import { epochFromTimestamp, epochToTimestamp } from '../utils'
 import { Epoch, NeedDto, Person, Place, Tgid, TripDto, TripPlaceDto } from '../ydb'
 
 //
@@ -106,15 +106,47 @@ const Helpers = {
     await context.deleteMessage()
   },
 
+  calendar: (args: {
+    epochToButton: (epoch: Epoch) => TgActionButton
+    days: number
+  }): TgActionButton[][] => {
+    const dayInMilliseconds: number = 24 * 60 * 60 * 1000
+    const today: number = Helpers.endOfDay(Date.now())
+    const buttons: TgActionButton[][] = Helpers.keyboard2d({
+      buttons: new Array(args.days).fill(undefined).map((_, days) => {
+        const epoch: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
+        return args.epochToButton(epoch)
+      }),
+      columns: 2,
+    })
+    return buttons
+  },
+
+  // declention: (n: number, one: string, few: string, many: string): string => {
+  //   let declention: string = many
+  //   if (Math.round(n) !== n) declention = few
+  //   else {
+  //     const units = Math.abs(n % 10)
+  //     const tens = Math.abs(n % 100)
+  //     if (units === 1 && tens !== 11) declention = one
+  //     else if (units >= 2 && units <= 4 && (tens < 10 || tens >= 20)) declention = few
+  //   }
+  //   return declention
+  // },
+
   endOfDay: (timestamp: number): number => {
     const endOfDay = new Date(timestamp)
     endOfDay.setUTCHours(23, 59, 59, 0)
     return endOfDay.getTime()
   },
 
-  epochToString: (epoch: Epoch): string => {
-    const [m, d] = new Date(epochToTimestamp(epoch)).toISOString().substring(5, 10).split('-')
-    return `${+d} ${Strings.MONTH_NAMES[m]}`
+  epochToString: (epoch: Epoch, daysfull: boolean = false): string => {
+    const date: Date = new Date(epochToTimestamp(epoch))
+    const dayOfWeek: string = daysfull
+      ? Strings.DAYS_FULL[date.getUTCDay()]
+      : Strings.DAYS_SHORT[date.getUTCDay()]
+    const [month, day] = date.toISOString().substring(5, 10).split('-')
+    return `${dayOfWeek}, ${+day} ${Strings.MONTHS[month]}`
   },
 
   // escape: (message: string): string => {
@@ -203,18 +235,16 @@ const Helpers = {
   },
 
   tripToString: (
-    args1: Partial<Pick<TripDto, 'id'>> &
-      Pick<TripDto, 'capacity' | 'day' | 'personTgname' | 'tgid'>,
+    args1: Partial<Pick<TripDto, 'id'>> & Pick<TripDto, 'day' | 'personTgname' | 'tgid'>,
     args2: Array<Pick<TripPlaceDto, 'minprice' | 'placeId' | 'placeName'>>,
   ): string => {
-    const { capacity, day, id, personTgname, tgid } = args1
+    const { day, id, personTgname, tgid } = args1
     let message: string = ''
 
     message += Format.bold(Helpers.numberToString(id ?? '??'))
     message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
 
-    message += `\n${Chars.x0_DOT} поездка ${Helpers.epochToString(day)}`
-    message += `\n${Chars.x0_DOT} пассажиров ${capacity}`
+    message += `\n${Chars.x0_DOT} ${Helpers.epochToString(day)}`
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
@@ -229,18 +259,36 @@ const Helpers = {
 } as const
 
 const Numbers = {
-  MAX_PLACES_PER_TRIP: 6,
-  NEEDS_SELECT_LIMIT: 3,
+  MAX_PLACES_PER_TRIP: 9,
+  NEEDS_SELECT_LIMIT: 6,
   PLACES_SELECT_LIMIT: 32,
-  TRIPS_SELECT_LIMIT: 3,
+  TRIPS_SELECT_LIMIT: 6,
 } as const
 
 const Strings = {
   ADD: 'Добавить',
   ADDITION: 'Добавление',
+  DAYS_FULL: {
+    0: 'понедельник',
+    1: 'вторник',
+    2: 'среда',
+    3: 'четверг',
+    4: 'пятница',
+    5: 'суббота',
+    6: 'воскресенье',
+  } as Record<string, string>,
+  DAYS_SHORT: {
+    0: 'пн',
+    1: 'вт',
+    2: 'ср',
+    3: 'чт',
+    4: 'пт',
+    5: 'сб',
+    6: 'вс',
+  } as Record<string, string>,
   EMPTY_PAGE: 'Пустая страница',
   LIST: 'Список',
-  MONTH_NAMES: {
+  MONTHS: {
     '01': 'января',
     '02': 'февраля',
     '03': 'марта',

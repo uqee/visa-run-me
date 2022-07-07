@@ -133,21 +133,21 @@ const Actions = (() => {
 
   // create
 
-  interface _tripsCreate345_payload {
-    trip: Pick<Trip, 'capacity' | 'day'>
+  interface _tripsCreate234_payload {
+    trip: Pick<Trip, 'day'>
     tripPlaces: Array<Pick<TripPlace, 'minprice' | 'placeId'> & _WithPlaceName>
   }
 
-  const _tripsCreate345_buttonPayload = (step: string, $: _tripsCreate345_payload): string => {
-    return `${step}:${$.trip.capacity}:${$.trip.day}${$.tripPlaces
+  const _tripsCreate234_buttonPayload = (step: string, $: _tripsCreate234_payload): string => {
+    return `${step}:${$.trip.day}${$.tripPlaces
       .map(({ minprice, placeId }) => `:${placeId},${minprice}`)
       .join('')}`
   }
 
-  const _tripsCreate345_handlerParser = (match: string[]): _tripsCreate345_payload => {
-    const [, capacity, day, tripPlaces] = match
+  const _tripsCreate234_handlerParser = (match: string[]): _tripsCreate234_payload => {
+    const [, day, tripPlaces] = match
     return {
-      trip: { capacity: +capacity, day: +day },
+      trip: { day: +day },
       tripPlaces: tripPlaces
         ? tripPlaces
             .split(':')
@@ -160,11 +160,11 @@ const Actions = (() => {
     }
   }
 
-  const _tripsCreate345_handlerPattern = (step: string): RegExp => {
-    return new RegExp(`^${step}:(\\d+):(\\d+)((?::\\d+,\\d+)*)$`)
+  const _tripsCreate234_handlerPattern = (step: string): RegExp => {
+    return new RegExp(`^${step}:(\\d+)((?::\\d+,\\d+)*)$`)
   }
 
-  const tripsCreate1_capacities: TgAction = {
+  const tripsCreate1_days: TgAction = {
     button: () => ({
       payload: 'tc1',
       text: Strings.ADD,
@@ -175,20 +175,9 @@ const Actions = (() => {
     },
   }
 
-  const tripsCreate2_days: TgAction<Pick<Trip, 'capacity'>> = {
+  const tripsCreate2_places: TgAction<_tripsCreate234_payload & { _loop?: boolean }> = {
     button: ($) => ({
-      payload: `tc2:${$.capacity}`,
-      text: `${$.capacity}`,
-    }),
-    handler: {
-      parser: ([, capacity]) => ({ capacity: +capacity }),
-      pattern: /^tc2:(\d+)$/,
-    },
-  }
-
-  const tripsCreate3_places: TgAction<_tripsCreate345_payload & { _loop?: boolean }> = {
-    button: ($) => ({
-      payload: _tripsCreate345_buttonPayload('tc3', $),
+      payload: _tripsCreate234_buttonPayload('tc2', $),
       text:
         $._loop === undefined
           ? `${Helpers.epochToString($.trip.day)}`
@@ -199,14 +188,14 @@ const Actions = (() => {
             })(),
     }),
     handler: {
-      parser: _tripsCreate345_handlerParser,
-      pattern: _tripsCreate345_handlerPattern('tc3'),
+      parser: _tripsCreate234_handlerParser,
+      pattern: _tripsCreate234_handlerPattern('tc2'),
     },
   }
 
-  const tripsCreate4_minprices: TgAction<_tripsCreate345_payload> = {
+  const tripsCreate3_minprices: TgAction<_tripsCreate234_payload> = {
     button: ($) => ({
-      payload: _tripsCreate345_buttonPayload('tc4', $),
+      payload: _tripsCreate234_buttonPayload('tc3', $),
       text: ((): string => {
         const lastTripPlace = $.tripPlaces[$.tripPlaces.length - 1]
         if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
@@ -214,19 +203,19 @@ const Actions = (() => {
       })(),
     }),
     handler: {
-      parser: _tripsCreate345_handlerParser,
-      pattern: _tripsCreate345_handlerPattern('tc4'),
+      parser: _tripsCreate234_handlerParser,
+      pattern: _tripsCreate234_handlerPattern('tc3'),
     },
   }
 
-  const tripsCreate5_commit: TgAction<_tripsCreate345_payload> = {
+  const tripsCreate4_commit: TgAction<_tripsCreate234_payload> = {
     button: ($) => ({
-      payload: _tripsCreate345_buttonPayload('tc5', $),
+      payload: _tripsCreate234_buttonPayload('tc4', $),
       text: Strings.SAVE,
     }),
     handler: {
-      parser: _tripsCreate345_handlerParser,
-      pattern: _tripsCreate345_handlerPattern('tc5'),
+      parser: _tripsCreate234_handlerParser,
+      pattern: _tripsCreate234_handlerPattern('tc4'),
     },
   }
 
@@ -284,11 +273,10 @@ const Actions = (() => {
     needsList,
 
     trips,
-    tripsCreate1_capacities,
-    tripsCreate2_days,
-    tripsCreate3_places,
-    tripsCreate4_minprices,
-    tripsCreate5_commit,
+    tripsCreate1_days,
+    tripsCreate2_places,
+    tripsCreate3_minprices,
+    tripsCreate4_commit,
     tripsDelete1_trips,
     tripsDelete2_commit,
     tripsList,

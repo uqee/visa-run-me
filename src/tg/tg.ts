@@ -6,8 +6,8 @@
 import { Update } from '@grammyjs/types'
 import { Telegraf } from 'telegraf'
 
-import { arrayDeduplicate, epochFromTimestamp } from '../utils'
-import { Epoch, Person, Place, Tgid, TripDto, TripPlaceDto, ydb } from '../ydb'
+import { arrayDeduplicate } from '../utils'
+import { Person, Place, Tgid, TripDto, TripPlaceDto, ydb } from '../ydb'
 import { Actions } from './actions'
 import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionResponse } from './utils'
 
@@ -100,14 +100,13 @@ class Tg {
 
       const { placeId } = Actions.needsCreate2_maxdays.handler.parser(context.match)
 
-      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
-      const today: number = Helpers.endOfDay(Date.now())
-      const maxdaysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
-          const maxday: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
-          return Actions.needsCreate3_maxprices.button({ maxday, placeId })
-        }),
-        columns: 2,
+      const maxdaysButtons: TgActionButton[][] = Helpers.calendar({
+        days: 12,
+        epochToButton: (epoch) =>
+          Actions.needsCreate3_maxprices.button({
+            maxday: epoch,
+            placeId,
+          }),
       })
 
       await Helpers.reply(context, {
@@ -291,7 +290,7 @@ class Tg {
       await Helpers.reply(context, {
         keyboard: [
           [
-            Actions.tripsCreate1_capacities.button(),
+            Actions.tripsCreate1_days.button(),
             Actions.tripsDelete1_trips.button({ _offset: 0 }),
             Actions.tripsList.button({ _offset: 0 }),
           ],
@@ -303,40 +302,16 @@ class Tg {
 
     // create
 
-    telegraf.action(Actions.tripsCreate1_capacities.handler.pattern, async (context) => {
+    telegraf.action(Actions.tripsCreate1_days.handler.pattern, async (context) => {
       await Helpers.accept(context)
 
-      const capacitiesButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((capacity) => {
-          return Actions.tripsCreate2_days.button({ capacity })
-        }),
-        columns: 3,
-      })
-
-      await Helpers.reply(context, {
-        keyboard: [...capacitiesButtons, [Actions.index.button()]],
-        message:
-          Helpers.header(Strings.TRIPS, Strings.ADDITION) + //
-          '\n\nСколько пассажиров планируете взять?',
-      })
-    })
-
-    telegraf.action(Actions.tripsCreate2_days.handler.pattern, async (context) => {
-      await Helpers.accept(context)
-
-      const { capacity } = Actions.tripsCreate2_days.handler.parser(context.match)
-
-      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
-      const today: number = Helpers.endOfDay(Date.now())
-      const daysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
-          const day: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
-          return Actions.tripsCreate3_places.button({
-            trip: { capacity, day },
+      const daysButtons: TgActionButton[][] = Helpers.calendar({
+        days: 12,
+        epochToButton: (epoch) =>
+          Actions.tripsCreate2_places.button({
+            trip: { day: epoch },
             tripPlaces: [],
-          })
-        }),
-        columns: 2,
+          }),
       })
 
       await Helpers.reply(context, {
@@ -347,10 +322,10 @@ class Tg {
       })
     })
 
-    telegraf.action(Actions.tripsCreate3_places.handler.pattern, async (context) => {
+    telegraf.action(Actions.tripsCreate2_places.handler.pattern, async (context) => {
       await Helpers.accept(context)
 
-      const { trip, tripPlaces } = Actions.tripsCreate3_places.handler.parser(context.match)
+      const { trip, tripPlaces } = Actions.tripsCreate2_places.handler.parser(context.match)
 
       const _limit: number = Numbers.PLACES_SELECT_LIMIT
       let places: Place[] = await ydb.placesSelect({ _limit, _offset: 0 })
@@ -362,7 +337,7 @@ class Tg {
 
       const placesButtons: TgActionButton[][] = Helpers.keyboard2d({
         buttons: places.map(({ id: placeId, name: _placeName }) => {
-          return Actions.tripsCreate4_minprices.button({
+          return Actions.tripsCreate3_minprices.button({
             trip,
             tripPlaces: [...tripPlaces, { _placeName, minprice: 0, placeId }],
           })
@@ -375,16 +350,20 @@ class Tg {
         keyboard.push(...placesButtons)
       }
       if (tripPlaces.length > 0) {
-        keyboard.push([Actions.tripsCreate5_commit.button({ trip, tripPlaces })])
+        keyboard.push([Actions.tripsCreate4_commit.button({ trip, tripPlaces })])
       }
       keyboard.push([Actions.index.button()])
 
       let message: string = Helpers.header(Strings.TRIPS, Strings.ADDITION)
-      message +=
-        tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP
-          ? '\n\nИз какого города (можно будет выбрать несколько) сможете забрать пассажиров?'
-          : '\n\nДостигнут лимит по количеству городов на одну поездку, больше добавить нельзя.'
-      message += '\n\nЕсли закончили добавлять города, нажмите кнопку "Сохранить".'
+      if (tripPlaces.length === 0) {
+        message +=
+          '\n\nИз какого города сможете забрать пассажиров?\n\nМожно будет выбрать несколько городов.'
+      } else if (tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP) {
+        message +=
+          '\n\nИз какого еще города сможете забрать пассажиров?\n\nЕсли закончили добавлять города, нажмите кнопку "Сохранить".'
+      } else {
+        message += `\n\nДостигнут лимит по количеству городов на одну поездку, больше ${Numbers.MAX_PLACES_PER_TRIP} добавить нельзя.\n\nДля добавления поездки нажмите кнопку "Сохранить".`
+      }
 
       await Helpers.reply(context, {
         keyboard,
@@ -392,19 +371,24 @@ class Tg {
       })
     })
 
-    telegraf.action(Actions.tripsCreate4_minprices.handler.pattern, async (context) => {
+    telegraf.action(Actions.tripsCreate3_minprices.handler.pattern, async (context) => {
       await Helpers.accept(context)
 
-      const { trip, tripPlaces } = Actions.tripsCreate4_minprices.handler.parser(context.match)
+      const { trip, tripPlaces } = Actions.tripsCreate3_minprices.handler.parser(context.match)
+
       const lastTripPlace = tripPlaces.pop()
       if (lastTripPlace === undefined) throw new Error('lastTripPlace === undefined')
+      const { placeId } = lastTripPlace
+
+      const place: Place | undefined = await ydb.placesSelectById({ id: placeId })
+      if (place === undefined) throw new Error('place === undefined')
 
       const minpricesButtons: TgActionButton[][] = Helpers.keyboard2d({
         buttons: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80].map((minprice) => {
-          return Actions.tripsCreate3_places.button({
+          return Actions.tripsCreate2_places.button({
             _loop: true,
             trip,
-            tripPlaces: [...tripPlaces, { minprice, placeId: lastTripPlace.placeId }],
+            tripPlaces: [...tripPlaces, { minprice, placeId }],
           })
         }),
         columns: 3,
@@ -414,15 +398,15 @@ class Tg {
         keyboard: [...minpricesButtons, [Actions.index.button()]],
         message:
           Helpers.header(Strings.TRIPS, Strings.ADDITION) + //
-          '\n\nЗа какую минимальную цену повезете из выбранного города?',
+          `\n\nЗа какую минимальную цену повезете из ${place.name}?`,
       })
     })
 
-    telegraf.action(Actions.tripsCreate5_commit.handler.pattern, async (context) => {
+    telegraf.action(Actions.tripsCreate4_commit.handler.pattern, async (context) => {
       await Helpers.accept(context)
 
       const tgid: Tgid = Helpers.getTgid(context)
-      const { trip, tripPlaces } = Actions.tripsCreate5_commit.handler.parser(context.match)
+      const { trip, tripPlaces } = Actions.tripsCreate4_commit.handler.parser(context.match)
 
       const person: Person | undefined = await ydb.personsSelect({ tgid })
       if (person === undefined) throw new Error('person === undefined')

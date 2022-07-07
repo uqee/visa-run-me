@@ -57,7 +57,6 @@ create table places (
 );
 
 create table trips (
-  capacity uint8,
   day uint32,
   personId uint32,
 
@@ -85,8 +84,6 @@ create table tripPlaces (
 commit;
 
 --
--- https://www.random.org/strings/
--- 11 lowercased letters and digits
 
 replace into persons
   (firstname, lastname, tgname, created, deleted, id, tgid)

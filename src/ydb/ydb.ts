@@ -320,7 +320,7 @@ class Ydb {
         and t.deleted is null
       order by
         tripId desc,
-        id desc
+        placeId asc
     `)
     )[0]
   }
@@ -342,20 +342,20 @@ class Ydb {
   }
 
   public async tripsInsert(
-    args1: Pick<Trip, 'capacity' | 'day' | 'personId' | 'tgid'>,
+    args1: Pick<Trip, 'day' | 'personId' | 'tgid'>,
     args2: Array<Pick<TripPlace, 'minprice' | 'placeId'>>,
   ): Promise<Pick<Trip, 'id'> | undefined> {
-    const { capacity, day, personId, tgid } = args1
+    const { day, personId, tgid } = args1
 
     const result = (
       await this._execute<Pick<Trip, 'id'>>(`
         $id = select cast((max(id) ?? 0) + 1 as uint32) from trips with xlock;
 
         insert into trips (
-          capacity, day, personId,
+          day, personId,
           created, deleted, id, tgid
         ) values (
-          ${capacity}, ${day}, ${personId},
+          ${day}, ${personId},
           ${epochFromTimestamp()}, null, $id, ${tgid}
         );
 
