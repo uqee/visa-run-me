@@ -6,8 +6,8 @@
 import { Update } from '@grammyjs/types'
 import { Telegraf } from 'telegraf'
 
-import { arrayDeduplicate, epochFromTimestamp } from '../utils'
-import { Epoch, Person, Place, Tgid, TripDto, TripPlaceDto, ydb } from '../ydb'
+import { arrayDeduplicate } from '../utils'
+import { Person, Place, Tgid, TripDto, TripPlaceDto, ydb } from '../ydb'
 import { Actions } from './actions'
 import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionResponse } from './utils'
 
@@ -100,14 +100,13 @@ class Tg {
 
       const { placeId } = Actions.needsCreate2_maxdays.handler.parser(context.match)
 
-      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
-      const today: number = Helpers.endOfDay(Date.now())
-      const maxdaysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
-          const maxday: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
-          return Actions.needsCreate3_maxprices.button({ maxday, placeId })
-        }),
-        columns: 2,
+      const maxdaysButtons: TgActionButton[][] = Helpers.calendar({
+        epochToButton: (epoch) =>
+          Actions.needsCreate3_maxprices.button({
+            maxday: epoch,
+            placeId,
+          }),
+        days: 12,
       })
 
       await Helpers.reply(context, {
@@ -326,17 +325,13 @@ class Tg {
 
       const { capacity } = Actions.tripsCreate2_days.handler.parser(context.match)
 
-      const dayInMilliseconds: number = 24 * 60 * 60 * 1000
-      const today: number = Helpers.endOfDay(Date.now())
-      const daysButtons: TgActionButton[][] = Helpers.keyboard2d({
-        buttons: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((days) => {
-          const day: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
-          return Actions.tripsCreate3_places.button({
-            trip: { capacity, day },
+      const daysButtons: TgActionButton[][] = Helpers.calendar({
+        epochToButton: (epoch) =>
+          Actions.tripsCreate3_places.button({
+            trip: { capacity, day: epoch },
             tripPlaces: [],
-          })
-        }),
-        columns: 2,
+          }),
+        days: 12,
       })
 
       await Helpers.reply(context, {

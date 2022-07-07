@@ -1,7 +1,7 @@
 import { InlineKeyboardButton } from '@grammyjs/types'
 import { Context, Markup } from 'telegraf'
 
-import { epochToTimestamp } from '../utils'
+import { epochFromTimestamp, epochToTimestamp } from '../utils'
 import { Epoch, NeedDto, Person, Place, Tgid, TripDto, TripPlaceDto } from '../ydb'
 
 //
@@ -104,6 +104,22 @@ const Helpers = {
   accept: async (context: Context): Promise<void> => {
     await context.answerCbQuery(undefined, { cache_time: 3 })
     await context.deleteMessage()
+  },
+
+  calendar: (args: {
+    epochToButton: (epoch: Epoch) => TgActionButton
+    days: number
+  }): TgActionButton[][] => {
+    const dayInMilliseconds: number = 24 * 60 * 60 * 1000
+    const today: number = Helpers.endOfDay(Date.now())
+    const buttons: TgActionButton[][] = Helpers.keyboard2d({
+      buttons: new Array(args.days).fill(undefined).map((_, days) => {
+        const epoch: Epoch = epochFromTimestamp(today + days * dayInMilliseconds)
+        return args.epochToButton(epoch)
+      }),
+      columns: 2,
+    })
+    return buttons
   },
 
   endOfDay: (timestamp: number): number => {
