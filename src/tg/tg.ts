@@ -13,12 +13,8 @@ import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionRespo
 
 class Tg {
   private static setupIndex(telegraf: Telegraf): void {
-    const help: string = `Отзывы и предложения пишите в группу ${Helpers.userLink(
-      'Visa Run ME ⋅ Help',
-      'visarunme_help',
-    )}.`
-
-    const home: string = `Для управления ботом используйте кнопки под сообщениями.\n\nЕсли вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте\n\n${Chars.x0_DOT} перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений)\n\n${Chars.x0_DOT} или отправить команду /start (простым сообщением).\n\n${help}`
+    const home: string =
+      'Для управления ботом используйте кнопки под сообщениями.\n\nВ нештатной ситуации попробуйте перезапустить бота (пунктом в меню или командой /start).\n\nЕсли проблема сохраняется, напишите в группу @VisaRunME_help, постараемся помочь.'
 
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Actions.needs.button(), Actions.trips.button()], [Actions.index.button()]],
@@ -34,11 +30,6 @@ class Tg {
       else await ydb.personsInsert({ firstname, lastname, tgid, tgname })
 
       await context.reply(`Dobro došli, ${firstname} ${Chars.x3_HEART}`)
-      await Helpers.reply(context, indexActionResponse)
-    })
-
-    telegraf.help(async (context) => {
-      await context.reply(help)
       await Helpers.reply(context, indexActionResponse)
     })
 
@@ -73,7 +64,9 @@ class Tg {
           ],
           [Actions.index.button()],
         ],
-        message: Helpers.header(Strings.NEEDS),
+        message:
+          Helpers.header(Strings.NEEDS) +
+          `\n\nЗаявки ${Chars.x0_EM_DASH} это спрос пассажиров на визараны.\n\nЕсли вы водитель, вам будет интересно посмотреть список ближайших заявок, после чего написать их авторам.\n\nЕсли вы пассажир, то можете зарегистрировать собственную заявку, указав крайний срок выезда, из какого города вас забрать и сколько вы готовы заплатить за поездку.`,
       })
     })
 
@@ -302,7 +295,9 @@ class Tg {
           ],
           [Actions.index.button()],
         ],
-        message: Helpers.header(Strings.TRIPS),
+        message:
+          Helpers.header(Strings.TRIPS) +
+          `\n\nПоездки ${Chars.x0_EM_DASH} это предложение визаранов водителями.\n\nЕсли вы пассажир, вам будет интересно посмотреть список ближайших поездок, после чего написать их авторам.\n\nЕсли вы водитель, то можете зарегистрировать собственную поездку, указав ее день и маршрут с ценами для пассажиров из каждого города.`,
       })
     })
 

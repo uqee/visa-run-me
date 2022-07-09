@@ -51,7 +51,7 @@ const Chars = {
   // x0_CIRCLE: '◯',
   // x0_CROSS: '╳',
   x0_DOT: '⋅',
-  // x0_EM_DASH: '—',
+  x0_EM_DASH: '—',
   // x0_EN_DASH: '–',
   // x0_MINUS: '−',
   // x0_MULT: '×',
@@ -188,7 +188,7 @@ const Helpers = {
     message += `${Format.bold(Helpers.epochToString(maxday))} (до)`
     message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id ?? '??')}`
     message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
-    message += `\n${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
+    message += `\n${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     return message
   },
@@ -248,12 +248,12 @@ const Helpers = {
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
     }
 
-    message += `\n${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
+    message += `\n${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     return message
   },
 
-  userLink: (tgname: Person['tgname'], tgid: Tgid | string): string => {
+  userLink: (tgid: Tgid | string, tgname?: Person['tgname']): string => {
     return Format.link(`@${tgname ?? tgid}`, `tg://user?id=${tgid}`)
   },
 } as const
