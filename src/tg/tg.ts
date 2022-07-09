@@ -13,10 +13,16 @@ import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionRespo
 
 class Tg {
   private static setupIndex(telegraf: Telegraf): void {
-    const help: string = `Для управления ботом используйте кнопки под сообщениями.\n\nЕсли вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте\n\n${Chars.x0_DOT} перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений)\n\n${Chars.x0_DOT} или отправить команду /start (простым сообщением).`
+    const help: string = `Отзывы и предложения пишите в группу ${Helpers.userLink(
+      'Visa Run ME ⋅ Help',
+      'visarunme_help',
+    )}.`
+
+    const home: string = `Для управления ботом используйте кнопки под сообщениями.\n\nЕсли вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте\n\n${Chars.x0_DOT} перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений)\n\n${Chars.x0_DOT} или отправить команду /start (простым сообщением).\n\n${help}`
+
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Actions.needs.button(), Actions.trips.button()], [Actions.index.button()]],
-      message: Helpers.header('Дом') + `\n\n${help}`,
+      message: Helpers.header('Дом') + `\n\n${home}`,
     }
 
     telegraf.start(async (context) => {
@@ -32,12 +38,7 @@ class Tg {
     })
 
     telegraf.help(async (context) => {
-      await context.reply(
-        `Отзывы и предложения пишите в группу ${Helpers.userLink(
-          'Visa Run ME ⋅ Help',
-          'visarunme_help',
-        )}.`,
-      )
+      await context.reply(help)
       await Helpers.reply(context, indexActionResponse)
     })
 
@@ -48,12 +49,12 @@ class Tg {
 
     telegraf.action(/.*/, async (context) => {
       await Helpers.accept(context)
-      await context.reply(help)
+      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.on('message', async (context) => {
-      await context.reply(help)
+      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
     })
   }
