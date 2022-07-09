@@ -32,7 +32,12 @@ class Tg {
     })
 
     telegraf.help(async (context) => {
-      await context.reply('С отзывами и предложениями стучите ко мне в телеграм: @denis_zhbankov.')
+      await context.reply(
+        `Отзывы и предложения пишите в группу ${Helpers.userLink(
+          'Visa Run ME ⋅ Help',
+          'visarunme_help',
+        )}.`,
+      )
       await Helpers.reply(context, indexActionResponse)
     })
 

@@ -253,7 +253,7 @@ const Helpers = {
     return message
   },
 
-  userLink: (tgname: Person['tgname'], tgid: Tgid): string => {
+  userLink: (tgname: Person['tgname'], tgid: Tgid | string): string => {
     return Format.link(`@${tgname ?? tgid}`, `tg://user?id=${tgid}`)
   },
 } as const
