@@ -102,8 +102,12 @@ const Format = {
 
 const Helpers = {
   accept: async (context: Context): Promise<void> => {
-    await context.answerCbQuery(undefined, { cache_time: 3 })
-    await context.deleteMessage()
+    try {
+      await context.answerCbQuery(undefined, { cache_time: 3 })
+      await context.deleteMessage()
+    } catch (error) {
+      console.error('UTILS : unacceptable', JSON.stringify(error))
+    }
   },
 
   calendar: (args: {
