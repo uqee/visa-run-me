@@ -51,7 +51,7 @@ const Chars = {
   // x0_CIRCLE: '◯',
   // x0_CROSS: '╳',
   x0_DOT: '⋅',
-  x0_EM_DASH: '—',
+  // x0_EM_DASH: '—',
   // x0_EN_DASH: '–',
   // x0_MINUS: '−',
   // x0_MULT: '×',
@@ -301,13 +301,13 @@ const Strings = {
     11: 'ноября',
     12: 'декабря',
   } as Record<string, string>,
-  NEEDS: 'Заявки',
+  NEEDS: 'Пассажиры',
   PAGE: 'Страница',
   REMOVAL: 'Удаление',
   REMOVE: 'Удалить',
   SAVE: 'Сохранить',
   SUCCESSFUL: 'Успешно',
-  TRIPS: 'Поездки',
+  TRIPS: 'Водители',
 } as const
 
 export { Chars, Format, Helpers, Numbers, Strings }
