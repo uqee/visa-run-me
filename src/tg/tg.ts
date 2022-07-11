@@ -14,7 +14,7 @@ import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionRespo
 class Tg {
   private static setupIndex(telegraf: Telegraf): void {
     const home: string =
-      'Для управления ботом используйте кнопки под сообщениями.\n\nВ нештатной ситуации попробуйте перезапустить бота (пунктом в меню или командой /start).\n\nЕсли проблема сохраняется, напишите в группу @VisaRunME_help, постараемся помочь.'
+      'Для управления ботом используйте кнопки под сообщениями.\n\nВ случае нештатной ситуации попробуйте перезапустить бота (пунктом в меню или командой /start).\n\nЕсли проблема сохраняется, напишите в группу @VisaRunME_help, постараемся помочь.'
 
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Actions.needs.button(), Actions.trips.button()], [Actions.index.button()]],

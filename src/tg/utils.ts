@@ -187,7 +187,7 @@ const Helpers = {
 
     message += `до ${Format.bold(Helpers.epochToString(maxday))}`
     message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
-    message += `\n${Chars.x0_DOT} едет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
+    message += `\n${Chars.x0_DOT} пассажир ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
     message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
 
     return message
@@ -242,7 +242,7 @@ const Helpers = {
 
     message += Format.bold(Helpers.epochToString(day))
     message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
-    message += `\n${Chars.x0_DOT} везет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
+    message += `\n${Chars.x0_DOT} водитель ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
@@ -268,22 +268,22 @@ const Strings = {
   ADD: 'Добавить',
   ADDITION: 'Добавление',
   DAYS_FULL: {
-    0: 'понедельник',
-    1: 'вторник',
-    2: 'среда',
-    3: 'четверг',
-    4: 'пятница',
-    5: 'суббота',
-    6: 'воскресенье',
+    0: 'воскресенье',
+    1: 'понедельник',
+    2: 'вторник',
+    3: 'среда',
+    4: 'четверг',
+    5: 'пятница',
+    6: 'суббота',
   } as Record<string, string>,
   DAYS_SHORT: {
-    0: 'пн',
-    1: 'вт',
-    2: 'ср',
-    3: 'чт',
-    4: 'пт',
-    5: 'сб',
-    6: 'вс',
+    0: 'вс',
+    1: 'пн',
+    2: 'вт',
+    3: 'ср',
+    4: 'чт',
+    5: 'пт',
+    6: 'сб',
   } as Record<string, string>,
   EMPTY_PAGE: 'Пустая страница',
   LIST: 'Список',
