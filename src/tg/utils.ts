@@ -51,7 +51,7 @@ const Chars = {
   // x0_CIRCLE: '◯',
   // x0_CROSS: '╳',
   x0_DOT: '⋅',
-  // x0_EM_DASH: '—',
+  x0_EM_DASH: '—',
   // x0_EN_DASH: '–',
   // x0_MINUS: '−',
   // x0_MULT: '×',
@@ -185,17 +185,16 @@ const Helpers = {
     const { id, maxday, maxprice, personTgname, placeName, tgid } = args
     let message: string = ''
 
-    message += Format.bold(Helpers.numberToString(id ?? '??'))
-    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
-
-    message += `\n${Chars.x0_DOT} до ${Helpers.epochToString(maxday)}`
-    message += `\n${Chars.x0_DOT} из ${placeName} за ${Helpers.priceToString(maxprice)}`
+    message += `до ${Format.bold(Helpers.epochToString(maxday))}`
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
+    message += `\n${Chars.x0_DOT} едет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
+    message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
 
     return message
   },
 
-  numberToString: (number: number | string): string => {
-    return `${Chars.x0_NUMBER} ${number}`
+  numberToString: (number: number | string | undefined): string => {
+    return `${Chars.x0_NUMBER} ${number ?? '??'}`
   },
 
   pageToString: (args: { _limit: number; _offset: number }): string => {
@@ -241,10 +240,10 @@ const Helpers = {
     const { day, id, personTgname, tgid } = args1
     let message: string = ''
 
-    message += Format.bold(Helpers.numberToString(id ?? '??'))
-    message += ` ${Format.spoiler(Helpers.userLink(personTgname, tgid))}`
+    message += Format.bold(Helpers.epochToString(day))
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
+    message += `\n${Chars.x0_DOT} везет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
-    message += `\n${Chars.x0_DOT} ${Helpers.epochToString(day)}`
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
@@ -253,7 +252,7 @@ const Helpers = {
     return message
   },
 
-  userLink: (tgname: Person['tgname'], tgid: Tgid): string => {
+  userLink: (tgid: Tgid | string, tgname?: Person['tgname']): string => {
     return Format.link(`@${tgname ?? tgid}`, `tg://user?id=${tgid}`)
   },
 } as const

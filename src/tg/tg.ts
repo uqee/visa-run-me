@@ -13,10 +13,12 @@ import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionRespo
 
 class Tg {
   private static setupIndex(telegraf: Telegraf): void {
-    const help: string = `Для управления ботом используйте кнопки под сообщениями.\n\nЕсли вдруг кнопки пропали или в любой другой непонятной ситуации попробуйте\n\n${Chars.x0_DOT} перезапустить бота через меню (нажать кнопку слева от поля ввода сообщений)\n\n${Chars.x0_DOT} или отправить команду /start (простым сообщением).`
+    const home: string =
+      'Для управления ботом используйте кнопки под сообщениями.\n\nВ нештатной ситуации попробуйте перезапустить бота (пунктом в меню или командой /start).\n\nЕсли проблема сохраняется, напишите в группу @VisaRunME_help, постараемся помочь.'
+
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Actions.needs.button(), Actions.trips.button()], [Actions.index.button()]],
-      message: Helpers.header('Дом') + `\n\n${help}`,
+      message: Helpers.header('Дом') + `\n\n${home}`,
     }
 
     telegraf.start(async (context) => {
@@ -31,11 +33,6 @@ class Tg {
       await Helpers.reply(context, indexActionResponse)
     })
 
-    telegraf.help(async (context) => {
-      await context.reply('С отзывами и предложениями стучите ко мне в телеграм: @denis_zhbankov.')
-      await Helpers.reply(context, indexActionResponse)
-    })
-
     telegraf.action(Actions.index.handler.pattern, async (context) => {
       await Helpers.accept(context)
       await Helpers.reply(context, indexActionResponse)
@@ -43,12 +40,12 @@ class Tg {
 
     telegraf.action(/.*/, async (context) => {
       await Helpers.accept(context)
-      await context.reply(help)
+      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
     })
 
     telegraf.on('message', async (context) => {
-      await context.reply(help)
+      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
     })
   }
@@ -67,7 +64,9 @@ class Tg {
           ],
           [Actions.index.button()],
         ],
-        message: Helpers.header(Strings.NEEDS),
+        message:
+          Helpers.header(Strings.NEEDS) +
+          `\n\nЗаявки ${Chars.x0_EM_DASH} это спрос пассажиров на визараны.\n\nЕсли вы водитель, вам будет интересно посмотреть список ближайших заявок, после чего написать их авторам.\n\nЕсли вы пассажир, то можете зарегистрировать собственную заявку, указав крайний срок выезда, из какого города вас забрать и сколько вы готовы заплатить за поездку.`,
       })
     })
 
@@ -101,7 +100,7 @@ class Tg {
       const { placeId } = Actions.needsCreate2_maxdays.handler.parser(context.match)
 
       const maxdaysButtons: TgActionButton[][] = Helpers.calendar({
-        days: 12,
+        days: 14,
         epochToButton: (epoch) =>
           Actions.needsCreate3_maxprices.button({
             maxday: epoch,
@@ -296,7 +295,9 @@ class Tg {
           ],
           [Actions.index.button()],
         ],
-        message: Helpers.header(Strings.TRIPS),
+        message:
+          Helpers.header(Strings.TRIPS) +
+          `\n\nПоездки ${Chars.x0_EM_DASH} это предложение визаранов водителями.\n\nЕсли вы пассажир, вам будет интересно посмотреть список ближайших поездок, после чего написать их авторам.\n\nЕсли вы водитель, то можете зарегистрировать собственную поездку, указав ее день и маршрут с ценами для пассажиров из каждого города.`,
       })
     })
 
@@ -306,7 +307,7 @@ class Tg {
       await Helpers.accept(context)
 
       const daysButtons: TgActionButton[][] = Helpers.calendar({
-        days: 12,
+        days: 14,
         epochToButton: (epoch) =>
           Actions.tripsCreate2_places.button({
             trip: { day: epoch },
