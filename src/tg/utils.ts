@@ -185,16 +185,16 @@ const Helpers = {
     const { id, maxday, maxprice, personTgname, placeName, tgid } = args
     let message: string = ''
 
-    message += `${Format.bold(Helpers.epochToString(maxday))} (до)`
-    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id ?? '??')}`
+    message += `до ${Format.bold(Helpers.epochToString(maxday))}`
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
+    message += `\n${Chars.x0_DOT} едет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
     message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
-    message += `\n${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     return message
   },
 
-  numberToString: (number: number | string): string => {
-    return `${Chars.x0_NUMBER} ${number}`
+  numberToString: (number: number | string | undefined): string => {
+    return `${Chars.x0_NUMBER} ${number ?? '??'}`
   },
 
   pageToString: (args: { _limit: number; _offset: number }): string => {
@@ -241,14 +241,13 @@ const Helpers = {
     let message: string = ''
 
     message += Format.bold(Helpers.epochToString(day))
-    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id ?? '??')}`
+    message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
+    message += `\n${Chars.x0_DOT} везет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
       message += ` за ${Helpers.priceToString(tripPlace.minprice)}`
     }
-
-    message += `\n${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     return message
   },

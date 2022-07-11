@@ -110,3 +110,14 @@ values
   ('Ulcinj',       1650900000, null, 14, 115469675);
 
 commit;
+
+--
+
+delete from caches;
+delete from needs;
+-- delete from persons;
+-- delete from places;
+delete from tripPlaces;
+delete from trips;
+
+commit;
