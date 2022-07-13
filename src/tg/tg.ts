@@ -12,13 +12,26 @@ import { Actions } from './actions'
 import { _Arrow, Chars, Helpers, Numbers, Strings, TgActionButton, TgActionResponse } from './utils'
 
 class Tg {
-  private static setupIndex(telegraf: Telegraf): void {
-    const home: string =
-      'Для управления ботом используйте кнопки под сообщениями.\n\nВ нештатной ситуации попробуйте перезапустить бота (пунктом в меню или командой /start).\n\nЕсли проблема сохраняется, напишите в группу @VisaRunME_help, постараемся помочь.'
+  private static setupIndex1(telegraf: Telegraf, debug: boolean): void {
+    telegraf.use(async (context, next) => {
+      if (debug) console.log('TG : context', JSON.stringify(context))
+      return next()
+    })
+  }
+
+  private static setupIndex2(telegraf: Telegraf, debug: boolean): void {
+    const errorActionResponse = (updateId: number): TgActionResponse => ({
+      keyboard: [],
+      message:
+        Helpers.header('Ошибка', `Запрос ${Helpers.numberToString(updateId)}`) +
+        `\n\nЧто-то пошло не так :(\n\nПожалуйста, перезапустите бота:\n${Chars.x0_DOT} либо полной очисткой чата,\n${Chars.x0_DOT} либо пунктом «Перезапуск» в меню,\n${Chars.x0_DOT} либо командой /start.\n\nЕсли перезапуск не помог, отправьте это сообщение в группу поддержки @VisaRunME_help, постараемся помочь.`,
+    })
 
     const indexActionResponse: TgActionResponse = {
       keyboard: [[Actions.needs.button(), Actions.trips.button()], [Actions.index.button()]],
-      message: Helpers.header('Дом') + `\n\n${home}`,
+      message:
+        Helpers.header('Дом') +
+        '\n\nДля управления ботом используйте кнопки под сообщениями.\n\nВ случае нештатной ситуации попробуйте перезапустить бота. Если проблема сохранится, напишите в группу @VisaRunME_help, постараемся помочь.',
     }
 
     telegraf.start(async (context) => {
@@ -40,13 +53,20 @@ class Tg {
 
     telegraf.action(/.*/, async (context) => {
       await Helpers.accept(context)
-      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
     })
 
+    telegraf.command('error', async (context) => {
+      await Helpers.reply(context, errorActionResponse(context.update.update_id))
+    })
+
     telegraf.on('message', async (context) => {
-      await context.reply(home)
       await Helpers.reply(context, indexActionResponse)
+    })
+
+    telegraf.catch(async (error, context) => {
+      if (debug) console.error('TG : error', JSON.stringify(error))
+      await Helpers.reply(context, errorActionResponse(context.update.update_id))
     })
   }
 
@@ -66,7 +86,7 @@ class Tg {
         ],
         message:
           Helpers.header(Strings.NEEDS) +
-          `\n\nЗаявки ${Chars.x0_EM_DASH} это спрос пассажиров на визараны.\n\nЕсли вы водитель, вам будет интересно посмотреть список ближайших заявок, после чего написать их авторам.\n\nЕсли вы пассажир, то можете зарегистрировать собственную заявку, указав крайний срок выезда, из какого города вас забрать и сколько вы готовы заплатить за поездку.`,
+          '\n\nЗдесь пассажиры, которым нужен визаран.\n\nЕсли вы пассажир, добавьте себя, указав крайний срок выезда, из какого города вас забрать и сколько вы готовы заплатить за поездку.\n\nЕсли вы водитель, посмотрите список пассажиров и предложите им свою поездку.',
       })
     })
 
@@ -297,7 +317,7 @@ class Tg {
         ],
         message:
           Helpers.header(Strings.TRIPS) +
-          `\n\nПоездки ${Chars.x0_EM_DASH} это предложение визаранов водителями.\n\nЕсли вы пассажир, вам будет интересно посмотреть список ближайших поездок, после чего написать их авторам.\n\nЕсли вы водитель, то можете зарегистрировать собственную поездку, указав ее день и маршрут с ценами для пассажиров из каждого города.`,
+          '\n\nЗдесь водители, которые отвозят на визаран.\n\nЕсли вы водитель, добавьте себя, указав день и маршрут поездки с ценами для пассажиров из каждого города.\n\nЕсли вы пассажир, посмотрите список водителей и запишитесь к ним в поездку.',
       })
     })
 
@@ -361,9 +381,9 @@ class Tg {
           '\n\nИз какого города сможете забрать пассажиров?\n\nМожно будет выбрать несколько городов.'
       } else if (tripPlaces.length < Numbers.MAX_PLACES_PER_TRIP) {
         message +=
-          '\n\nИз какого еще города сможете забрать пассажиров?\n\nЕсли закончили добавлять города, нажмите кнопку "Сохранить".'
+          '\n\nИз какого еще города сможете забрать пассажиров?\n\nЕсли закончили добавлять города, нажмите кнопку «Сохранить».'
       } else {
-        message += `\n\nДостигнут лимит по количеству городов на одну поездку, больше ${Numbers.MAX_PLACES_PER_TRIP} добавить нельзя.\n\nДля добавления поездки нажмите кнопку "Сохранить".`
+        message += `\n\nДостигнут лимит по количеству городов на одну поездку, больше ${Numbers.MAX_PLACES_PER_TRIP} добавить нельзя.\n\nДля добавления поездки нажмите кнопку «Сохранить».`
       }
 
       await Helpers.reply(context, {
@@ -564,20 +584,10 @@ class Tg {
   public _setup(tgBotToken: string, debug: boolean): void {
     const telegraf: Telegraf = new Telegraf(tgBotToken)
 
-    telegraf.use(async (context, next) => {
-      if (debug) console.log('TG : context', JSON.stringify(context))
-      return next()
-    })
-
+    Tg.setupIndex1(telegraf, debug)
     Tg.setupNeeds(telegraf)
     Tg.setupTrips(telegraf)
-
-    Tg.setupIndex(telegraf)
-
-    telegraf.catch((error) => {
-      if (debug) console.error('TG : error', JSON.stringify(error))
-      throw error
-    })
+    Tg.setupIndex2(telegraf, debug)
 
     process.once('SIGINT', () => this.telegraf?.stop('SIGINT'))
     process.once('SIGTERM', () => this.telegraf?.stop('SIGTERM'))

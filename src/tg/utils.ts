@@ -51,7 +51,7 @@ const Chars = {
   // x0_CIRCLE: '◯',
   // x0_CROSS: '╳',
   x0_DOT: '⋅',
-  x0_EM_DASH: '—',
+  // x0_EM_DASH: '—',
   // x0_EN_DASH: '–',
   // x0_MINUS: '−',
   // x0_MULT: '×',
@@ -102,8 +102,12 @@ const Format = {
 
 const Helpers = {
   accept: async (context: Context): Promise<void> => {
-    await context.answerCbQuery(undefined, { cache_time: 3 })
-    await context.deleteMessage()
+    try {
+      await context.answerCbQuery(undefined, { cache_time: 3 })
+      await context.deleteMessage()
+    } catch (error) {
+      console.error('UTILS : unacceptable', JSON.stringify(error))
+    }
   },
 
   calendar: (args: {
@@ -187,7 +191,7 @@ const Helpers = {
 
     message += `до ${Format.bold(Helpers.epochToString(maxday))}`
     message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
-    message += `\n${Chars.x0_DOT} едет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
+    message += `\n${Chars.x0_DOT} пассажир ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
     message += `\n${Chars.x0_DOT} из ${placeName} до ${Helpers.priceToString(maxprice)}`
 
     return message
@@ -242,7 +246,7 @@ const Helpers = {
 
     message += Format.bold(Helpers.epochToString(day))
     message += ` ${Chars.x0_DOT} ${Helpers.numberToString(id)}`
-    message += `\n${Chars.x0_DOT} везет ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
+    message += `\n${Chars.x0_DOT} водитель ${Format.spoiler(Helpers.userLink(tgid, personTgname))}`
 
     for (const tripPlace of args2) {
       message += `\n${Chars.x0_DOT} из ${tripPlace.placeName}`
@@ -268,22 +272,22 @@ const Strings = {
   ADD: 'Добавить',
   ADDITION: 'Добавление',
   DAYS_FULL: {
-    0: 'понедельник',
-    1: 'вторник',
-    2: 'среда',
-    3: 'четверг',
-    4: 'пятница',
-    5: 'суббота',
-    6: 'воскресенье',
+    0: 'воскресенье',
+    1: 'понедельник',
+    2: 'вторник',
+    3: 'среда',
+    4: 'четверг',
+    5: 'пятница',
+    6: 'суббота',
   } as Record<string, string>,
   DAYS_SHORT: {
-    0: 'пн',
-    1: 'вт',
-    2: 'ср',
-    3: 'чт',
-    4: 'пт',
-    5: 'сб',
-    6: 'вс',
+    0: 'вс',
+    1: 'пн',
+    2: 'вт',
+    3: 'ср',
+    4: 'чт',
+    5: 'пт',
+    6: 'сб',
   } as Record<string, string>,
   EMPTY_PAGE: 'Пустая страница',
   LIST: 'Список',
@@ -301,13 +305,13 @@ const Strings = {
     11: 'ноября',
     12: 'декабря',
   } as Record<string, string>,
-  NEEDS: 'Заявки',
+  NEEDS: 'Пассажиры',
   PAGE: 'Страница',
   REMOVAL: 'Удаление',
   REMOVE: 'Удалить',
   SAVE: 'Сохранить',
   SUCCESSFUL: 'Успешно',
-  TRIPS: 'Поездки',
+  TRIPS: 'Водители',
 } as const
 
 export { Chars, Format, Helpers, Numbers, Strings }
